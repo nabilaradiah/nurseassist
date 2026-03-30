@@ -44,7 +44,8 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
   }
 
   Future<void> _saveAssessment() async {
-    if (!_specialistConfirmed) {
+    // Only require specialist confirmation if the wound type requires it (types 3, 4, 6)
+    if (_assessment.requiresSpecialistConfirmation && !_specialistConfirmed) {
       await showDialog(
         context: context,
         builder: (context) {

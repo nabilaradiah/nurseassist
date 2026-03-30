@@ -7,6 +7,7 @@
 /// 1. Set analysisMethod = 'cloud'
 /// 2. Copy .env.example to .env and add your Roboflow credentials
 /// 3. The app will load keys from .env automatically
+library;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AIConfig {
@@ -15,8 +16,7 @@ class AIConfig {
   /// - 'cloud': Use cloud-based AI API (requires API key)
   /// - 'tflite': Use on-device TensorFlow Lite model (requires .tflite file)
   /// - 'enhanced_mock': Use enhanced rule-based analysis (works offline, no setup)
-  /// 
-  /// TODO: Change to 'cloud' after training Roboflow model
+
   static const String analysisMethod = 'cloud';
   
   // ========== CLOUD API CONFIGURATIONS ==========
@@ -51,22 +51,6 @@ class AIConfig {
   static String get googleCloudApiKey => 
     dotenv.env['GOOGLE_CLOUD_API_KEY'] ?? 'YOUR_GOOGLE_CLOUD_API_KEY_HERE';
   static const String googleCloudProjectId = 'your-project-id';
-  
-  /// Azure Custom Vision Configuration
-  /// Get credentials from: https://portal.azure.com
-  static String get azurePredictionKey => 
-    dotenv.env['AZURE_PREDICTION_KEY'] ?? 'YOUR_AZURE_PREDICTION_KEY_HERE';
-  static const String azureEndpoint = 'https://your-resource.cognitiveservices.azure.com';
-  static const String azureProjectId = 'your-project-id';
-  static const String azurePublishedName = 'your-iteration-name';
-  
-  /// AWS Rekognition Configuration
-  static String get awsAccessKey => 
-    dotenv.env['AWS_ACCESS_KEY'] ?? 'YOUR_AWS_ACCESS_KEY_HERE';
-  static String get awsSecretKey => 
-    dotenv.env['AWS_SECRET_KEY'] ?? 'YOUR_AWS_SECRET_KEY_HERE';
-  static const String awsRegion = 'us-east-1';
-  static const String awsProjectArn = 'your-project-arn';
   
   // ========== TFLITE MODEL CONFIGURATION ==========
   
@@ -130,10 +114,6 @@ class AIConfig {
     }
     if (googleCloudApiKey != 'YOUR_GOOGLE_CLOUD_API_KEY_HERE' && 
         googleCloudApiKey.isNotEmpty) {
-      return true;
-    }
-    if (azurePredictionKey != 'YOUR_AZURE_PREDICTION_KEY_HERE' && 
-        azurePredictionKey.isNotEmpty) {
       return true;
     }
     return false;

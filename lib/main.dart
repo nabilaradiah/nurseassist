@@ -10,22 +10,32 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Load environment variables from .env file
-  await dotenv.load(fileName: ".env");
-  
   try {
-    // Initialize Firebase
-    await Firebase.initializeApp();
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print('⚠️ .env file not found: $e');
+  }
+  
+  // Initialize Firebase with timeout
+  try {
+    await Firebase.initializeApp().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        print('⚠️ Firebase initialization timeout - continuing without Firebase');
+        throw Exception('Firebase initialization timeout');
+      },
+    );
     print('✅ Firebase initialized successfully');
   } catch (e) {
     print('❌ Firebase initialization error: $e');
-    print('Please configure Firebase. See README.md for instructions.');
+    print('App will run in offline mode. Some features may not work.');
   }
   
   runApp(const NurseAssistApp());
 }
 
 class NurseAssistApp extends StatelessWidget {
-  const NurseAssistApp({Key? key}) : super(key: key);
+  const NurseAssistApp({super.key});
 
   @override
   Widget build(BuildContext context) {
