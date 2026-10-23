@@ -1,271 +1,340 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 import '../models/patient.dart';
+import '../models/vital_reading.dart';
 import '../models/wound_assessment.dart';
-import 'local_storage_service.dart';
+import '../models/wound_types_database.dart';
 
+/// Reads throw on failure (permission denied, offline, ...) so screens can
+/// show an error instead of an empty list. Writes that touch more than one
+/// document go through a single batch, so they either all happen or none do.
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final LocalStorageService _localStorage = LocalStorageService();
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  /// Firestore allows 500 writes per batch; stay well under it.
+  static const int _maxBatchWrites = 450;
+
+  /// Parses every document, skipping (and logging) any that can't be read,
+  /// so one malformed record doesn't hide all the others.
+  List<T> _parseDocs<T>(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    final items = <T>[];
+    for (final doc in docs) {
+      try {
+        items.add(fromJson({'id': doc.id, ...doc.data()}));
+      } catch (e) {
+        debugPrint('⚠️ Skipping unreadable ${doc.reference.path}: $e');
+      }
+    }
+    return items;
+  }
 
   // Patient operations
   Future<List<Patient>> getPatients() async {
-    try {
-      final querySnapshot = await _firestore
-          .collection('patients')
-          .orderBy('registeredDate', descending: true)
-          .get();
-
-      return querySnapshot.docs
-          .map((doc) => Patient.fromJson({
-                'id': doc.id,
-                ...doc.data(),
-              }))
-          .toList();
-    } catch (e) {
-      print('Get patients error: $e');
-      return [];
-    }
+    final querySnapshot = await _firestore
+        .collection('patients')
+        .orderBy('registeredDate', descending: true)
+        .get();
+    return _parseDocs(querySnapshot.docs, Patient.fromJson);
   }
 
-  // Get patients assigned to a specific staff member
-  Future<List<Patient>> getPatientsByStaffId(String staffId) async {
-    try {
-      print('🔍 Querying patients for staffId: "$staffId"');
-      
-      // First, check all patients to debug
-      final allPatientsSnapshot = await _firestore
-          .collection('patients')
-          .get();
-      print('📋 Total patients in Firebase: ${allPatientsSnapshot.docs.length}');
-      
-      // Print all patient data for debugging
-      for (var doc in allPatientsSnapshot.docs) {
-        final data = doc.data();
-        print('  - Patient: ${data['name']} | staffIdAssignedTo: "${data['staffIdAssignedTo']}"');
-      }
-      
-      // Now filter by staffId
-      final querySnapshot = await _firestore
-          .collection('patients')
-          .where('staffIdAssignedTo', isEqualTo: staffId)
-          .get();
-
-      print('✅ Found ${querySnapshot.docs.length} patients for staffId: $staffId');
-      
-      final patients = querySnapshot.docs
-          .map((doc) {
-            print('  📄 Loading patient: ${doc.data()['name']}');
-            return Patient.fromJson({
-              'id': doc.id,
-              ...doc.data(),
-            });
-          })
-          .toList();
-      
-      // Sort by registeredDate in memory
-      patients.sort((a, b) => b.registeredDate.compareTo(a.registeredDate));
-      
-      return patients;
-    } catch (e) {
-      print('❌ Get patients by staff ID error: $e');
-      return [];
-    }
-  }
-
+  /// The patient, or null if it doesn't exist.
   Future<Patient?> getPatient(String patientId) async {
-    try {
-      final doc = await _firestore.collection('patients').doc(patientId).get();
-      if (!doc.exists) return null;
-      return Patient.fromJson({
-        'id': doc.id,
-        ...doc.data()!,
-      });
-    } catch (e) {
-      print('Get patient error: $e');
-      return null;
-    }
+    final doc = await _firestore.collection('patients').doc(patientId).get();
+    if (!doc.exists) return null;
+    return Patient.fromJson({'id': doc.id, ...doc.data()!});
   }
 
   Future<void> addPatient(Patient patient) async {
-    await _firestore.collection('patients').doc(patient.id).set(patient.toJson());
+    await _firestore
+        .collection('patients')
+        .doc(patient.id)
+        .set(patient.toJson());
   }
 
-  Future<void> updatePatient(Patient patient) async {
-    await _firestore.collection('patients').doc(patient.id).update(patient.toJson());
-  }
-
-  Future<Patient?> getPatientByMrn(String mrn) async {
-    try {
-      final query = await _firestore
-          .collection('patients')
-          .where('mrn', isEqualTo: mrn)
-          .limit(1)
-          .get();
-
-      if (query.docs.isEmpty) return null;
-
-      final doc = query.docs.first;
-      return Patient.fromJson({
-        'id': doc.id,
-        ...doc.data(),
-      });
-    } catch (e) {
-      print('Get patient by MRN error: $e');
-      return null;
+  /// Updates the patient's details. Existing vital readings are left
+  /// untouched so an edit made from a stale copy can never drop a reading
+  /// recorded meanwhile; [newReading], if given, is appended in the same
+  /// write.
+  Future<void> updatePatient(Patient patient, {VitalReading? newReading}) async {
+    final data = patient.toJson()..remove('vitalReadings');
+    if (newReading != null) {
+      data['vitalReadings'] = FieldValue.arrayUnion([newReading.toJson()]);
     }
+    await _firestore.collection('patients').doc(patient.id).update(data);
   }
 
+  /// Adds [reading] to the patient's history and links it to one wound
+  /// assessment, in a single batch.
+  Future<void> recordAssessmentVitals({
+    required String patientId,
+    required String assessmentId,
+    required VitalReading reading,
+  }) async {
+    final batch = _firestore.batch()
+      ..update(_firestore.collection('patients').doc(patientId), {
+        'vitalReadings': FieldValue.arrayUnion([reading.toJson()]),
+      })
+      ..update(_firestore.collection('woundAssessments').doc(assessmentId),
+          {'vitals': reading.toJson()});
+    await batch.commit();
+  }
+
+  /// Links a vital-sign reading to one wound assessment. Only the 'vitals'
+  /// field is written.
+  Future<void> saveAssessmentVitals(
+      String assessmentId, VitalReading reading) async {
+    await _firestore
+        .collection('woundAssessments')
+        .doc(assessmentId)
+        .update({'vitals': reading.toJson()});
+  }
+
+  /// Appends one dated vital-sign reading to the patient's history.
+  Future<void> addVitalReading(String patientId, VitalReading reading) async {
+    await _firestore.collection('patients').doc(patientId).update({
+      'vitalReadings': FieldValue.arrayUnion([reading.toJson()]),
+    });
+  }
+
+  /// The patient with this MRN, or null if there is none. Throws if the
+  /// lookup itself fails, so a failed check is never read as "no duplicate".
+  Future<Patient?> getPatientByMrn(String mrn) async {
+    final query = await _firestore
+        .collection('patients')
+        .where('mrn', isEqualTo: mrn)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) return null;
+
+    final doc = query.docs.first;
+    return Patient.fromJson({'id': doc.id, ...doc.data()});
+  }
+
+  /// Deletes the patient and all their wound assessments. The patient record
+  /// goes in the first batch: it is the permission-gated step
+  /// (supervisor/admin only), so if it's rejected nothing is deleted.
+  /// Wound images are removed from Storage by the
+  /// deleteWoundImageOnAssessmentDelete Cloud Function.
   Future<void> deletePatientAndAssessments(String patientId) async {
-    // Delete related wound assessments first
     final assessmentsSnapshot = await _firestore
         .collection('woundAssessments')
         .where('patientId', isEqualTo: patientId)
         .get();
 
-    for (final doc in assessmentsSnapshot.docs) {
-      await _firestore.collection('woundAssessments').doc(doc.id).delete();
+    final refs = [
+      _firestore.collection('patients').doc(patientId),
+      ...assessmentsSnapshot.docs.map((doc) => doc.reference),
+    ];
+    for (var i = 0; i < refs.length; i += _maxBatchWrites) {
+      final batch = _firestore.batch();
+      for (final ref in refs.skip(i).take(_maxBatchWrites)) {
+        batch.delete(ref);
+      }
+      await batch.commit();
     }
-
-    // Delete patient record
-    await _firestore.collection('patients').doc(patientId).delete();
   }
 
   // Wound Assessment operations
   Future<List<WoundAssessment>> getWoundAssessments(String patientId) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection('woundAssessments')
-          .where('patientId', isEqualTo: patientId)
-          .get();
-
-      final items = querySnapshot.docs
-          .map((doc) => WoundAssessment.fromJson({
-                'id': doc.id,
-                ...doc.data(),
-              }))
-          .toList();
-
-      items.sort((a, b) => b.assessmentDate.compareTo(a.assessmentDate));
-      return items;
-    } catch (e) {
-      print('Get wound assessments error: $e');
-      return [];
-    }
-  }
-
-  Future<WoundAssessment?> getWoundAssessment(String assessmentId) async {
-    try {
-      final doc = await _firestore.collection('woundAssessments').doc(assessmentId).get();
-      if (!doc.exists) return null;
-      return WoundAssessment.fromJson({
-        'id': doc.id,
-        ...doc.data()!,
-      });
-    } catch (e) {
-      print('Get wound assessment error: $e');
-      return null;
-    }
-  }
-
-  Future<void> addWoundAssessment(WoundAssessment assessment) async {
-    await _firestore
+    final querySnapshot = await _firestore
         .collection('woundAssessments')
-        .doc(assessment.id)
-        .set(assessment.toJson());
+        .where('patientId', isEqualTo: patientId)
+        .get();
 
-    // Update patient's wound assessment list
-    await _firestore.collection('patients').doc(assessment.patientId).update({
-      'woundAssessmentIds': FieldValue.arrayUnion([assessment.id]),
-    });
+    final items = _parseDocs(querySnapshot.docs, WoundAssessment.fromJson);
+    items.sort((a, b) => b.assessmentDate.compareTo(a.assessmentDate));
+    return items;
   }
 
+  /// Saves a new assessment and adds it to the patient's list in one batch.
+  Future<void> addWoundAssessment(WoundAssessment assessment) async {
+    final batch = _firestore.batch()
+      ..set(
+        _firestore.collection('woundAssessments').doc(assessment.id),
+        assessment.toJson(),
+      )
+      ..update(_firestore.collection('patients').doc(assessment.patientId), {
+        'woundAssessmentIds': FieldValue.arrayUnion([assessment.id]),
+      });
+    await batch.commit();
+  }
+
+  /// Saves the fields the results screen edits (AI result, notes, specialist
+  /// confirmation). Correction, approval and feedback fields have their own
+  /// methods, so a save from a stale copy can never overwrite them.
   Future<void> updateWoundAssessment(WoundAssessment assessment) async {
     await _firestore
         .collection('woundAssessments')
         .doc(assessment.id)
-        .update(assessment.toJson());
+        .update({
+      'analysisResult': assessment.analysisResult?.toJson(),
+      'additionalNotes': assessment.additionalNotes,
+      'specialistConfirmed': assessment.specialistConfirmed,
+    });
   }
 
+  /// Save the nurse's TIME(S) assessment and the wound type it scores to.
+  ///
+  /// The TIME-derived type is recorded as the clinician's label, which puts
+  /// the assessment in the lecturer approval queue (same as a manual
+  /// correction). When it differs from the AI's type, the lecturer decides.
+  /// Only the TIME and correction fields are written, so this never touches
+  /// supervisor or training-approval fields a nurse isn't allowed to set.
+  Future<void> saveTimeAssessment({
+    required String assessmentId,
+    required TimeAssessment timeAssessment,
+    required String correctedBy,
+  }) async {
+    final type = timeAssessment.woundType;
+    if (type == null) {
+      throw ArgumentError('TIME assessment is incomplete: no wound type.');
+    }
+    await _firestore
+        .collection('woundAssessments')
+        .doc(assessmentId)
+        .update({
+      'timeAssessment': timeAssessment.toJson(),
+      'clinicianCorrectedType': type,
+      'clinicianCorrectedName': WoundTypesDatabase.getWoundTypeName(type),
+      'correctedBy': correctedBy,
+      'correctedAt': FieldValue.serverTimestamp(),
+      // A new label needs a fresh lecturer decision
+      'approvedForTraining': false,
+      'approvedBy': null,
+      'approvedAt': null,
+    });
+  }
+
+  /// Mark a verified image as approved for the next model training run.
+  /// Optionally reassigns the wound type and/or leaves feedback for the
+  /// nurse who made the original clinician correction.
+  /// Should only be called by users with Lecturer or Admin role.
+  Future<void> approveForTraining({
+    required String assessmentId,
+    required String approvedBy,
+    int? supervisorCorrectedType,
+    String? supervisorFeedback,
+  }) async {
+    final data = <String, dynamic>{
+      'approvedForTraining': true,
+      'approvedBy': approvedBy,
+      'approvedAt': FieldValue.serverTimestamp(),
+    };
+
+    final hasComment = supervisorFeedback?.trim().isNotEmpty ?? false;
+
+    if (supervisorCorrectedType != null) {
+      data['supervisorCorrectedType'] = supervisorCorrectedType;
+      data['supervisorCorrectedName'] =
+          WoundTypesDatabase.getWoundTypeName(supervisorCorrectedType);
+    }
+    if (hasComment) {
+      data['supervisorFeedback'] = supervisorFeedback!.trim();
+    }
+    if (hasComment || supervisorCorrectedType != null) {
+      data['supervisorFeedbackBy'] = approvedBy;
+      data['supervisorFeedbackAt'] = FieldValue.serverTimestamp();
+      data['hasSupervisorFeedback'] = true;
+    }
+
+    await _firestore.collection('woundAssessments').doc(assessmentId).update(data);
+  }
+
+  /// Fetch all assessments that have been clinician-verified but not yet
+  /// approved or rejected for training.  Used by the Lecturer approval queue.
+  Future<List<WoundAssessment>> getPendingApprovalAssessments() async {
+    final snapshot = await _firestore
+        .collection('woundAssessments')
+        .where('clinicianCorrectedType', isNull: false)
+        .where('approvedForTraining', isEqualTo: false)
+        .get();
+
+    return _parseDocs(snapshot.docs, WoundAssessment.fromJson)
+        .where((a) => !a.rejectedForTraining)
+        .toList();
+  }
+
+  /// Mark an image as unsuitable for training (e.g. poor quality, wrong angle).
+  /// Requires supervisor feedback explaining the rejection, and optionally
+  /// reassigns the wound type.
+  /// Should only be called by users with Lecturer or Admin role.
+  Future<void> rejectFromTraining({
+    required String assessmentId,
+    required String rejectedBy,
+    required String supervisorFeedback,
+    int? supervisorCorrectedType,
+  }) async {
+    final data = <String, dynamic>{
+      'rejectedForTraining': true,
+      'rejectedBy': rejectedBy,
+      'rejectedAt': FieldValue.serverTimestamp(),
+      'supervisorFeedback': supervisorFeedback.trim(),
+      'supervisorFeedbackBy': rejectedBy,
+      'supervisorFeedbackAt': FieldValue.serverTimestamp(),
+      'hasSupervisorFeedback': true,
+    };
+
+    if (supervisorCorrectedType != null) {
+      data['supervisorCorrectedType'] = supervisorCorrectedType;
+      data['supervisorCorrectedName'] =
+          WoundTypesDatabase.getWoundTypeName(supervisorCorrectedType);
+    }
+
+    await _firestore.collection('woundAssessments').doc(assessmentId).update(data);
+  }
+
+  /// Assessments corrected by [staffId] that a supervisor has since
+  /// reassigned and/or commented on. Used for the nurse's dashboard badge
+  /// and the nurse feedback list screen.
+  Future<List<WoundAssessment>> getAssessmentsNeedingAttention(
+      String staffId) async {
+    final snapshot = await _firestore
+        .collection('woundAssessments')
+        .where('correctedBy', isEqualTo: staffId)
+        .where('hasSupervisorFeedback', isEqualTo: true)
+        .get();
+
+    return _parseDocs(snapshot.docs, WoundAssessment.fromJson);
+  }
+
+  /// Deletes the assessment and removes it from the patient's list in one
+  /// batch. Its image is removed by a Cloud Function.
   Future<void> deleteWoundAssessment({
     required String assessmentId,
     required String patientId,
   }) async {
-    await _firestore.collection('woundAssessments').doc(assessmentId).delete();
-    await _firestore.collection('patients').doc(patientId).update({
-      'woundAssessmentIds': FieldValue.arrayRemove([assessmentId]),
-    });
-  }
-
-  // Save image to local device storage
-  Future<String> uploadWoundImage(File imageFile, String fileName) async {
-    try {
-      final filePath = await _localStorage.saveWoundImage(imageFile, fileName);
-      return filePath; // Return local file path instead of URL
-    } catch (e) {
-      print('Save image error: $e');
-      rethrow;
-    }
-  }
-
-  // Initialize sample data
-  Future<void> initializeSampleData() async {
-    try {
-      // Always try to add sample staff (will update if exists)
-      await _firestore.collection('staff').doc('staff1').set({
-        'staffId': '22167',
-        'name': 'AISHA',
-        'department': 'Nursing',
+    final batch = _firestore.batch()
+      ..delete(_firestore.collection('woundAssessments').doc(assessmentId))
+      ..update(_firestore.collection('patients').doc(patientId), {
+        'woundAssessmentIds': FieldValue.arrayRemove([assessmentId]),
       });
+    await batch.commit();
+  }
 
-      // Check if patients already exist
-      final patientsSnapshot = await _firestore.collection('patients').limit(1).get();
-      if (patientsSnapshot.docs.isNotEmpty) {
-        print('Sample data already initialized');
-        return; // Patients already exist
-      }
+  /// Upload a wound image to Firebase Storage and return its download URL.
+  /// Images are stored under wound_images/{uid}/{fileName} so that
+  /// Storage security rules can be scoped per user if needed.
+  Future<String> uploadWoundImage(File imageFile, String fileName) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('Not signed in.');
+    final ref = _storage
+        .ref()
+        .child('wound_images')
+        .child(uid)
+        .child(fileName);
 
-      // Add sample patients
-      final patients = [
-        Patient(
-          id: 'patient1',
-          mrn: 'MRN-001234',
-          name: 'Sabrina Elyasa',
-          age: 29,
-          gender: 'Female',
-          contact: '0174067606',
-          registeredDate: DateTime(2025, 12, 14),
-          staffIdAssignedTo: 'WRN-001',
-        ),
-        Patient(
-          id: 'patient2',
-          mrn: 'MRN-001235',
-          name: 'Abdul Wahab',
-          age: 67,
-          gender: 'Male',
-          contact: '0123456789',
-          registeredDate: DateTime(2025, 12, 10),
-          staffIdAssignedTo: 'WRN-001',
-        ),
-        Patient(
-          id: 'patient3',
-          mrn: 'MRN-001236',
-          name: 'Nik Marwaa',
-          age: 32,
-          gender: 'Female',
-          contact: '0198765432',
-          registeredDate: DateTime(2025, 12, 5),
-          staffIdAssignedTo: 'WRN-002',
-        ),
-      ];
-
-      for (var patient in patients) {
-        await addPatient(patient);
-      }
-      
-      print('Sample data initialized successfully');
-    } catch (e) {
-      print('Error initializing sample data: $e');
-    }
+    final uploadTask = await ref.putFile(
+      imageFile,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    return await uploadTask.ref.getDownloadURL();
   }
 }

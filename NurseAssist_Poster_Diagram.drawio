@@ -1,0 +1,129 @@
+<mxGraphModel dx="1200" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="750" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- TITLE -->
+    <mxCell id="2" value="NurseAssist — System Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=20;fontStyle=1;fontColor=#1a1a1a;" vertex="1" parent="1">
+      <mxGeometry x="200" y="18" width="680" height="36" as="geometry" />
+    </mxCell>
+
+    <!-- ══════════════ ACTORS (top) ══════════════ -->
+    <mxCell id="a1" value="👩‍⚕️  Nurse" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="180" y="68" width="150" height="55" as="geometry" />
+    </mxCell>
+    <mxCell id="a2" value="🎓  Supervisor" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="760" y="68" width="150" height="55" as="geometry" />
+    </mxCell>
+
+    <!-- ══════════════ FLUTTER APP BOX ══════════════ -->
+    <mxCell id="app" value="Flutter Mobile App (Android)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#6c8ebf;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10;" vertex="1" parent="1">
+      <mxGeometry x="80" y="155" width="930" height="290" as="geometry" />
+    </mxCell>
+
+    <!-- Screen boxes inside app -->
+    <mxCell id="s1" value="🔐 Auth&#xa;Login · Register" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="105" y="200" width="155" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="s2" value="🏠 Dashboard&#xa;Patients · Stats" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="285" y="200" width="155" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="s3" value="📷 Capture Wound&#xa;Camera · Privacy check" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="465" y="200" width="165" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="s4" value="📋 Results&#xa;Type · Care plan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="655" y="200" width="155" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="s5" value="✅ Approval Queue&#xa;Approve for retraining" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="835" y="200" width="160" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- ML Pipeline strip inside app -->
+    <mxCell id="ml0" value="On-Device ML Pipeline" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#9673a6;align=left;" vertex="1" parent="1">
+      <mxGeometry x="108" y="300" width="220" height="20" as="geometry" />
+    </mxCell>
+
+    <mxCell id="ml1" value="① Skin Gate&#xa;MediaPipe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="105" y="325" width="140" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="ml2" value="② Wound Classifier&#xa;EfficientNetB0 TFLite" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="275" y="325" width="165" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="ml3" value="8 Wound Types&#xa;Type 1 – Type 8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="470" y="325" width="150" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="ml4" value="Care Plan&#xa;WoundTypesDatabase" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="650" y="325" width="150" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- ML arrows -->
+    <mxCell id="mla1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="ml1" target="ml2" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="mla2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="ml2" target="ml3" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="mla3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="ml3" target="ml4" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Screen flow arrows -->
+    <mxCell id="sf1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="s1" target="s2" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="sf2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="s2" target="s3" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="sf3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="s3" target="s4" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Capture → ML pipeline -->
+    <mxCell id="cm1" value="runs" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;fontColor=#9673a6;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="s3" target="ml1" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ══════════════ FIREBASE (bottom left) ══════════════ -->
+    <mxCell id="fb" value="Firebase (Google Cloud)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;fontSize=13;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+      <mxGeometry x="80" y="480" width="570" height="130" as="geometry" />
+    </mxCell>
+    <mxCell id="fb1" value="🔑 Firebase Auth&#xa;Email + password" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="100" y="510" width="160" height="75" as="geometry" />
+    </mxCell>
+    <mxCell id="fb2" value="🗄 Cloud Firestore&#xa;Patients · Assessments · Staff" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="285" y="510" width="180" height="75" as="geometry" />
+    </mxCell>
+    <mxCell id="fb3" value="🖼 Firebase Storage&#xa;Wound images" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="490" y="510" width="140" height="75" as="geometry" />
+    </mxCell>
+
+    <!-- ══════════════ COLAB (bottom right) ══════════════ -->
+    <mxCell id="cl" value="ML Retraining Loop" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=13;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+      <mxGeometry x="680" y="480" width="330" height="130" as="geometry" />
+    </mxCell>
+    <mxCell id="cl1" value="Nurse corrects type&#xa;↓&#xa;Supervisor approves&#xa;↓&#xa;Google Colab retrains&#xa;↓&#xa;New .tflite deployed" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;align=center;fontColor=#333;" vertex="1" parent="1">
+      <mxGeometry x="685" y="505" width="320" height="100" as="geometry" />
+    </mxCell>
+
+    <!-- ══════════════ CROSS ARROWS ══════════════ -->
+
+    <!-- Actors → App -->
+    <mxCell id="ca1" value="captures wound" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;fontColor=#6c8ebf;fontSize=10;exitX=0.5;exitY=1;entryX=0.2;entryY=0;" edge="1" source="a1" target="app" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="ca2" value="approves images" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;fontColor=#6c8ebf;fontSize=10;exitX=0.5;exitY=1;entryX=0.85;entryY=0;" edge="1" source="a2" target="app" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- App → Firebase -->
+    <mxCell id="af1" value="read / write data" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=1.5;fontColor=#b85450;fontSize=10;exitX=0.25;exitY=1;entryX=0.25;entryY=0;" edge="1" source="app" target="fb" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- App → Colab loop -->
+    <mxCell id="ac1" value="feedback loop" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;fontColor=#9673a6;fontSize=10;exitX=0.85;exitY=1;entryX=0.5;entryY=0;" edge="1" source="app" target="cl" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>

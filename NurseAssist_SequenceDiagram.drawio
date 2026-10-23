@@ -1,0 +1,161 @@
+<mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1400" math="0" shadow="0">
+  <root>
+    <mxCell id="0" /><mxCell id="1" parent="0" />
+
+    <mxCell id="t1" value="NurseAssist — Sequence Diagram (Wound Analysis)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="300" y="15" width="800" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="t2" value="Scenario: Nurse captures a wound photo and receives classification result." style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+      <mxGeometry x="300" y="48" width="800" height="22" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════ LIFELINE HEADERS ═══════ -->
+    <mxCell id="h1" value="👩‍⚕️ Nurse" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="80" width="130" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="h2" value="CaptureWound&#xa;Screen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="230" y="80" width="130" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="h3" value="Skin Detection&#xa;Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="430" y="80" width="130" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="h4" value="Wound Analysis&#xa;Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="630" y="80" width="130" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="h5" value="Firestore&#xa;Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="830" y="80" width="130" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="h6" value="Firebase&#xa;(Backend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="1040" y="80" width="130" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="h7" value="AnalysisResults&#xa;Screen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="1240" y="80" width="130" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════ LIFELINES (dashed vertical lines) ═══════ -->
+    <mxCell id="ll1" style="edgeStyle=none;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="h1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="105" y="1370" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <mxCell id="ll2" style="edgeStyle=none;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="h2" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="295" y="1370" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <mxCell id="ll3" style="edgeStyle=none;strokeColor=#9673a6;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;" edge="1" source="h3" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="495" y="1370" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <mxCell id="ll4" style="edgeStyle=none;strokeColor=#9673a6;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;" edge="1" source="h4" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="695" y="1370" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <mxCell id="ll5" style="edgeStyle=none;strokeColor=#b85450;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;" edge="1" source="h5" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="895" y="1370" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <mxCell id="ll6" style="edgeStyle=none;strokeColor=#b85450;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;" edge="1" source="h6" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="1105" y="1370" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <mxCell id="ll7" style="edgeStyle=none;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;" edge="1" source="h7" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="1305" y="1370" as="targetPoint" /></mxGeometry>
+    </mxCell>
+
+    <!-- ═══════ MESSAGES ═══════ -->
+    <!-- 1. Nurse taps Capture -->
+    <mxCell id="m1" value="tap 'Capture Wound'" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#333;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="105" y="185" as="sourcePoint" /><mxPoint x="295" y="185" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 2. Screen opens camera -->
+    <mxCell id="m2" value="openCamera() / pickFromGallery()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;fontColor=#333;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="295" y="225" as="sourcePoint" /><mxPoint x="105" y="225" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 3. Nurse captures photo -->
+    <mxCell id="m3" value="image captured" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#333;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="105" y="265" as="sourcePoint" /><mxPoint x="295" y="265" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 4. Privacy dialog -->
+    <mxCell id="m4" value="show privacy confirmation dialog" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;fontColor=#333;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="295" y="305" as="sourcePoint" /><mxPoint x="105" y="305" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 5. Nurse confirms -->
+    <mxCell id="m5" value="confirm (proceed)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#333;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="105" y="345" as="sourcePoint" /><mxPoint x="295" y="345" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 6. Compress -->
+    <mxCell id="m6" value="compressImage() — 1024px · 85% JPEG" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;fontColor=#333;fontSize=11;endArrow=open;endFill=0;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="295" y="385" as="sourcePoint" /><mxPoint x="295" y="385" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 7. Upload to Firebase -->
+    <mxCell id="m7" value="uploadWoundImage(compressed)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=2;fontColor=#b85450;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="295" y="425" as="sourcePoint" /><mxPoint x="895" y="425" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 8. Firestore → Firebase Storage -->
+    <mxCell id="m8" value="putFile() → Firebase Storage" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=1.5;fontColor=#b85450;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="895" y="465" as="sourcePoint" /><mxPoint x="1105" y="465" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 9. Return URL -->
+    <mxCell id="m9" value="return imageUrl" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=1.5;fontColor=#b85450;fontSize=11;dashed=1;endArrow=open;endFill=0;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="1105" y="505" as="sourcePoint" /><mxPoint x="295" y="505" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 10. analyzeWound -->
+    <mxCell id="m10" value="analyzeWound(imageFile)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;fontColor=#9673a6;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="295" y="555" as="sourcePoint" /><mxPoint x="695" y="555" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 11. WoundAnalysisService calls SkinDetectionService -->
+    <mxCell id="m11" value="containsSkin(imageFile)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;fontColor=#9673a6;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="695" y="595" as="sourcePoint" /><mxPoint x="495" y="595" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 12. MediaPipe processes -->
+    <mxCell id="m12" value="SelfieSegmenter.processImage()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;fontColor=#9673a6;fontSize=11;endArrow=open;endFill=0;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="495" y="635" as="sourcePoint" /><mxPoint x="495" y="635" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 13. Return skin result -->
+    <mxCell id="m13" value="return true (skin detected)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;fontColor=#9673a6;fontSize=11;dashed=1;endArrow=open;endFill=0;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="495" y="675" as="sourcePoint" /><mxPoint x="695" y="675" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 14. TFLite inference -->
+    <mxCell id="m14" value="interpreter.run([1,224,224,3])" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;fontColor=#9673a6;fontSize=11;endArrow=open;endFill=0;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="695" y="715" as="sourcePoint" /><mxPoint x="695" y="715" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 15. Return analysis result -->
+    <mxCell id="m15" value="return WoundAnalysisResult (type, confidence, care plan)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;fontColor=#9673a6;fontSize=11;dashed=1;endArrow=open;endFill=0;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="695" y="755" as="sourcePoint" /><mxPoint x="295" y="755" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 16. Build WoundAssessment & save -->
+    <mxCell id="m16" value="addWoundAssessment(assessment)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=2;fontColor=#b85450;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="295" y="795" as="sourcePoint" /><mxPoint x="895" y="795" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 17. Firestore write -->
+    <mxCell id="m17" value="write /woundAssessments + update /patients" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=1.5;fontColor=#b85450;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="895" y="835" as="sourcePoint" /><mxPoint x="1105" y="835" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 18. Saved confirmation -->
+    <mxCell id="m18" value="saved" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=1.5;fontColor=#b85450;fontSize=11;dashed=1;endArrow=open;endFill=0;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="1105" y="875" as="sourcePoint" /><mxPoint x="295" y="875" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 19. Navigate to results -->
+    <mxCell id="m19" value="navigate to AnalysisResultsScreen" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#6c8ebf;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="295" y="915" as="sourcePoint" /><mxPoint x="1305" y="915" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 20. Show results to nurse -->
+    <mxCell id="m20" value="display wound type, severity, care plan" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;fontColor=#6c8ebf;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="1305" y="960" as="sourcePoint" /><mxPoint x="105" y="960" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <!-- 21. Nurse submits correction (optional) -->
+    <mxCell id="altbox" value="alt  [if nurse corrects wound type]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=11;fontStyle=2;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="80" y="990" width="1290" height="110" as="geometry" />
+    </mxCell>
+    <mxCell id="m21" value="submitCorrection(correctedType)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=2;fontColor=#b85450;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="105" y="1020" as="sourcePoint" /><mxPoint x="895" y="1020" as="targetPoint" /></mxGeometry>
+    </mxCell>
+    <mxCell id="m22" value="saveClinicianCorrection() → Firestore" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=1.5;fontColor=#b85450;fontSize=11;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry"><mxPoint x="895" y="1060" as="sourcePoint" /><mxPoint x="1105" y="1060" as="targetPoint" /></mxGeometry>
+    </mxCell>
+
+    <!-- Step labels on left margin -->
+    <mxCell id="s1" value="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#6c8ebf;fontColor=#fff;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="20" y="178" width="22" height="22" as="geometry" /></mxCell>
+    <mxCell id="s3" value="2" style="ellipse;whiteSpace=wrap;html=1;fillColor=#6c8ebf;fontColor=#fff;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="20" y="258" width="22" height="22" as="geometry" /></mxCell>
+    <mxCell id="s5" value="3" style="ellipse;whiteSpace=wrap;html=1;fillColor=#6c8ebf;fontColor=#fff;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="20" y="338" width="22" height="22" as="geometry" /></mxCell>
+    <mxCell id="s7" value="4" style="ellipse;whiteSpace=wrap;html=1;fillColor=#b85450;fontColor=#fff;strokeColor=#b85450;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="20" y="418" width="22" height="22" as="geometry" /></mxCell>
+    <mxCell id="s10" value="5" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9673a6;fontColor=#fff;strokeColor=#9673a6;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="20" y="548" width="22" height="22" as="geometry" /></mxCell>
+    <mxCell id="s14" value="6" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9673a6;fontColor=#fff;strokeColor=#9673a6;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="20" y="708" width="22" height="22" as="geometry" /></mxCell>
+    <mxCell id="s16" value="7" style="ellipse;whiteSpace=wrap;html=1;fillColor=#b85450;fontColor=#fff;strokeColor=#b85450;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="20" y="788" width="22" height="22" as="geometry" /></mxCell>
+    <mxCell id="s19" value="8" style="ellipse;whiteSpace=wrap;html=1;fillColor=#6c8ebf;fontColor=#fff;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="20" y="908" width="22" height="22" as="geometry" /></mxCell>
+
+  </root>
+</mxGraphModel>

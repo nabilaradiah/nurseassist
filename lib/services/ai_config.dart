@@ -1,147 +1,63 @@
 /// Configuration for AI/ML wound analysis services
-/// 
-/// IMPORTANT: API keys are loaded from .env file, not hardcoded!
-/// See .env.example for the required environment variables.
-/// 
-/// TO USE ROBOFLOW:
-/// 1. Set analysisMethod = 'cloud'
-/// 2. Copy .env.example to .env and add your Roboflow credentials
-/// 3. The app will load keys from .env automatically
 library;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AIConfig {
   // ========== ANALYSIS METHOD SELECTION ==========
-  /// Choose your analysis method:
-  /// - 'cloud': Use cloud-based AI API (requires API key)
-  /// - 'tflite': Use on-device TensorFlow Lite model (requires .tflite file)
-  /// - 'enhanced_mock': Use enhanced rule-based analysis (works offline, no setup)
+  /// Active analysis method:
+  /// - 'tflite': Use on-device TensorFlow Lite model (primary)
 
-  static const String analysisMethod = 'cloud';
-  
-  // ========== CLOUD API CONFIGURATIONS ==========
-  
-  /// Roboflow Configuration - loaded from .env file
-  /// Sign up at: https://roboflow.com
-  /// Get API key from: https://app.roboflow.com/settings/api
-  static String get roboflowApiKey => 
-    dotenv.env['ROBOFLOW_API_KEY'] ?? 'YOUR_ROBOFLOW_API_KEY_HERE';
-  
-  static String get roboflowWorkspace => 
-    dotenv.env['ROBOFLOW_WORKSPACE'] ?? 'wound-classification-yigvv';
-  
-  static String get roboflowProject => 
-    dotenv.env['ROBOFLOW_PROJECT'] ?? 'wound-classification-nfw1l';
-  
-  static String get roboflowVersion => 
-    dotenv.env['ROBOFLOW_VERSION'] ?? '1';
-  
-  /// Endpoint for classification models (use 'detect' for object detection)
-  static String get roboflowEndpoint => 
-    'https://classify.roboflow.com/$roboflowProject/$roboflowVersion';
-  
-  /// Custom API Configuration
-  /// Use this if you have your own trained model deployed
-  static const String customApiEndpoint = 'https://your-api.com/analyze';
-  static String get customApiKey => 
-    dotenv.env['CUSTOM_API_KEY'] ?? 'YOUR_CUSTOM_API_KEY_HERE';
-  
-  /// Google Cloud Vision Configuration
-  /// Get API key from: https://console.cloud.google.com
-  static String get googleCloudApiKey => 
-    dotenv.env['GOOGLE_CLOUD_API_KEY'] ?? 'YOUR_GOOGLE_CLOUD_API_KEY_HERE';
-  static const String googleCloudProjectId = 'your-project-id';
-  
+  static const String analysisMethod = 'tflite';
+
   // ========== TFLITE MODEL CONFIGURATION ==========
-  
+
   /// TensorFlow Lite model path (relative to assets/)
   static const String tfliteModelPath = 'models/wound_classifier.tflite';
-  
-  /// Model labels file path
-  static const String tfliteLabelsPath = 'models/wound_labels.txt';
-  
+
   /// Input shape for TFLite model
   static const int tfliteInputHeight = 224;
   static const int tfliteInputWidth = 224;
-  static const int tfliteInputChannels = 3;
-  
-  /// Number of output classes (10 wound types + normal)
-  static const int tfliteNumClasses = 10;
-  
-  // ========== ANALYSIS PARAMETERS ==========
-  
-  /// Minimum confidence threshold for accepting AI predictions
-  static const double minConfidenceThreshold = 0.60;
-  
-  /// Timeout for API requests (in seconds)
-  static const int apiTimeout = 30;
-  
-  /// Maximum image size for upload (in MB)
-  static const int maxImageSizeMB = 5;
-  
-  /// Target image resolution for AI analysis
-  static const int targetImageWidth = 640;
-  static const int targetImageHeight = 640;
-  
-  /// JPEG quality for compressed images
-  static const int imageQuality = 85;
-  
-  // ========== VALIDATION ==========
-  
-  /// Check if configuration is valid for the selected method
-  static bool isConfigured() {
-    switch (analysisMethod) {
-      case 'cloud':
-        return _isCloudConfigured();
-      case 'tflite':
-        return true; // Model existence checked at runtime
-      case 'enhanced_mock':
-        return true; // No configuration needed
-      default:
-        return false;
-    }
-  }
-  
-  static bool _isCloudConfigured() {
-    // Check if at least one cloud service is configured
-    if (roboflowApiKey != 'YOUR_ROBOFLOW_API_KEY_HERE' && 
-        roboflowApiKey.isNotEmpty) {
-      return true;
-    }
-    if (customApiKey != 'YOUR_CUSTOM_API_KEY_HERE' && 
-        customApiKey.isNotEmpty) {
-      return true;
-    }
-    if (googleCloudApiKey != 'YOUR_GOOGLE_CLOUD_API_KEY_HERE' && 
-        googleCloudApiKey.isNotEmpty) {
-      return true;
-    }
-    return false;
-  }
-  
+
+  /// Number of output classes (Type_1 through Type_8)
+  static const int tfliteNumClasses = 8;
+
+  // ========== SKIN DETECTION (MediaPipe pre-check) ==========
+
+  /// When true, MediaPipe Selfie Segmentation runs before the wound classifier.
+  /// Images with fewer than [skinDetectionMinRatio] skin pixels are rejected
+  /// with a "No skin detected" message — no TFLite inference is wasted.
+  /// Set to false to disable (e.g. while testing on non-photo inputs).
+  static const bool skinDetectionEnabled = true;
+
+  /// Minimum fraction of image pixels that must be classified as "skin/person"
+  /// by MediaPipe for the image to pass the skin gate.
+  /// 0.04 = 4 % — low enough to pass close-up wound shots (which may have
+  /// little surrounding skin) while rejecting random objects/scenery.
+  static const double skinDetectionMinRatio = 0.04;
+
+  // ========== NO-WOUND DETECTION GUARD ==========
+
+  /// Toggle the "no wound detected" guard on or off.
+  /// true  → active: images where the model is not confident enough are
+  ///         rejected and the user is asked to retake the photo.
+  /// false → disabled: all images pass through regardless of confidence
+  ///         (useful while testing the model on non-wound photos).
+  static const bool noWoundDetectionEnabled = true;
+
+  /// If [noWoundDetectionEnabled] is true, any TFLite prediction whose top
+  /// class confidence is below this value is treated as "no wound detected".
+  /// Start at 0.35 and adjust upward if real wound photos are being rejected,
+  /// or downward if non-wound photos are still slipping through.
+  static const double noWoundConfidenceThreshold = 0.35;
+
+  // ========== STATUS ==========
+
   /// Get user-friendly configuration status message
   static String getConfigurationStatus() {
     switch (analysisMethod) {
-      case 'cloud':
-        if (isConfigured()) {
-          return '✅ Cloud API configured and ready';
-        } else {
-          return '⚠️ Cloud API selected but no API key configured';
-        }
       case 'tflite':
         return '📱 Using on-device TensorFlow Lite model';
-      case 'enhanced_mock':
-        return '🔧 Using enhanced rule-based analysis (works offline)';
       default:
         return '❌ Invalid analysis method selected';
     }
   }
-}
-
-/// Environment-specific configuration
-/// Override these in production using environment variables
-class EnvironmentConfig {
-  static const bool isProduction = false;
-  static const bool enableLogging = true;
-  static const bool enableAnalytics = false;
 }

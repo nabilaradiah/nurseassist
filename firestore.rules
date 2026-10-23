@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    function rolePath() {
+      return /databases/$(database)/documents/roles/$(request.auth.uid);
+    }
+
+    // A staff member is someone who verified their email AND has a roles/{uid}
+    // document (written at registration). A bare Firebase Auth account —
+    // e.g. one created straight through the Auth REST API — is not staff and
+    // gets no access to clinical data.
+    function isStaff() {
+      return isLoggedIn()
+             && request.auth.token.email_verified == true
+             && exists(rolePath());
+    }
+
+    // Only call after isStaff(), so the roles document is known to exist.
+    function userRole() {
+      return get(rolePath()).data.role;
+    }
+
+    function isSupervisorOrAdmin() {
+      return isStaff() && userRole() in ['supervisor', 'lecturer', 'admin'];
+    }
+
+    function isAdmin() {
+      return isStaff() && userRole() == 'admin';
+    }
+
+    // True when [field] is left as it was (a missing field counts as null).
+    function unchanged(field) {
+      return request.resource.data.get(field, null) == resource.data.get(field, null);
+    }
+
+    // The caller's Staff ID, from roles/{uid} (written at registration).
+    function myStaffId() {
+      return get(rolePath()).data.get('staffId', null);
+    }
+
+    // An audit pair (who + when, e.g. approvedBy/approvedAt) is either left
+    // as it was, cleared together, or written by the caller themself with the
+    // server's clock (FieldValue.serverTimestamp()) — so nobody can sign a
+    // change as someone else or back-date it.
+    function auditStamp(byField, atField) {
+      return (unchanged(byField) && unchanged(atField))
+          || (request.resource.data.get(byField, null) == null
+              && request.resource.data.get(atField, null) == null)
+          || (request.resource.data.get(byField, null) == myStaffId()
+              && request.resource.data.get(atField, null) == request.time);
+    }
+
+    function auditStampsValid() {
+      return auditStamp('correctedBy', 'correctedAt')
+          && auditStamp('approvedBy', 'approvedAt')
+          && auditStamp('rejectedBy', 'rejectedAt')
+          && auditStamp('supervisorFeedbackBy', 'supervisorFeedbackAt');
+    }
+
+    // ── roles/ ────────────────────────────────────────────────────────────────
+    // Written at registration (nurse default) and by admin for promotions.
+    // Each user can only read their own role document.
+    match /roles/{uid} {
+      allow read:   if isLoggedIn() && request.auth.uid == uid;
+      allow create: if isLoggedIn() && request.auth.uid == uid
+                       && request.resource.data.role == 'nurse';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ── staffLookup/ ──────────────────────────────────────────────────────────
+    // staffLookup/{STAFF_ID} → { email, uid }. The only staff data readable
+    // before login, so the login and password-reset screens can turn a Staff
+    // ID into an email. Single-document reads only — the collection cannot be
+    // listed, so staff details can't be harvested in bulk.
+    // Updates are blocked, which also makes Staff IDs unique: registering an
+    // ID that already exists is an update, and fails.
+    match /staffLookup/{staffId} {
+      allow get:    if true;
+      allow list:   if false;
+      allow create: if isLoggedIn()
+                       && request.resource.data.uid == request.auth.uid
+                       && request.resource.data.email == request.auth.token.email
+                       && request.resource.data.keys().hasOnly(['email', 'uid']);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ── staff/ ────────────────────────────────────────────────────────────────
+    // Full staff profiles: readable by signed-in users only (the app looks up
+    // the current user's own profile by email after login).
+    // Self-registration may only create a 'nurse' record for the caller's own
+    // email. Only supervisor/admin may update a staff record.
+    match /staff/{docId} {
+      allow read:   if isLoggedIn();
+      allow create: if isLoggedIn()
+                       && request.resource.data.role == 'nurse'
+                       && request.resource.data.email == request.auth.token.email;
+      allow update: if isSupervisorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── patients/ ─────────────────────────────────────────────────────────────
+    // Verified staff may read, add and edit.
+    // Deletion is locked to supervisor/lecturer/admin.
+    match /patients/{patientId} {
+      allow read:           if isStaff();
+      allow create, update: if isStaff()
+                               && userRole() in ['nurse', 'supervisor', 'lecturer', 'admin'];
+      allow delete:         if isSupervisorOrAdmin();
+    }
+
+    // ── woundAssessments/ ─────────────────────────────────────────────────────
+    // Verified staff may read and create; a new assessment must start
+    // unreviewed (no correction, approval, rejection or supervisor feedback).
+    // Every update must keep the audit fields honest (auditStampsValid).
+    // Beyond that, update is split:
+    //   - supervisor/admin can update any field
+    //   - nurse can update clinical fields but can't touch any training
+    //     approval/rejection or supervisor field
+    // Deletion is locked to supervisor/lecturer/admin.
+    match /woundAssessments/{assessmentId} {
+      allow read:   if isStaff();
+      allow create: if isStaff()
+                       && request.resource.data.get('correctedBy', null) == null
+                       && request.resource.data.get('approvedForTraining', false) == false
+                       && request.resource.data.get('approvedBy', null) == null
+                       && request.resource.data.get('rejectedForTraining', false) == false
+                       && request.resource.data.get('rejectedBy', null) == null
+                       && request.resource.data.get('supervisorCorrectedType', null) == null
+                       && request.resource.data.get('supervisorFeedback', null) == null
+                       && request.resource.data.get('hasSupervisorFeedback', false) == false;
+      allow update: if isStaff() && auditStampsValid() && (
+                      isSupervisorOrAdmin()
+                    || (
+                      unchanged('approvedForTraining')
+                      && unchanged('approvedBy')
+                      && unchanged('approvedAt')
+                      && unchanged('rejectedForTraining')
+                      && unchanged('rejectedBy')
+                      && unchanged('rejectedAt')
+                      && unchanged('supervisorCorrectedType')
+                      && unchanged('supervisorCorrectedName')
+                      && unchanged('supervisorFeedback')
+                      && unchanged('supervisorFeedbackBy')
+                      && unchanged('supervisorFeedbackAt')
+                      && unchanged('hasSupervisorFeedback')
+                      && unchanged('trainingImagePath')
+                    ));
+      allow delete: if isSupervisorOrAdmin();
+    }
+  }
+}

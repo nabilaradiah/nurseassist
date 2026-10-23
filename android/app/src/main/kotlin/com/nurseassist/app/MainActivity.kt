@@ -1,4 +1,4 @@
-package com.example.nurseassist
+package com.nurseassist.app
 
 import io.flutter.embedding.android.FlutterActivity
 

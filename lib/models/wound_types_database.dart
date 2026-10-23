@@ -1,338 +1,293 @@
+import 'wound_assessment.dart' show WoundManagement;
+
 /// Database of wound types with their characteristics and management protocols
-/// 
-/// Currently supports 10 wound types for Roboflow classification:
-/// - Abrasion, Bruise, Burn, Cut, Diabetic Wound, Laceration, 
-///   Normal, Pressure Wound, Surgical Wound, Venous Wound
+///
+/// Wound types are labelled Type_1 through Type_8 to match the TFLite model
+/// output classes.  Severity ASCENDS with the type number — Type 1 is the
+/// mildest/best outcome and Type 8 is the most critical:
+///
+///   Type_1 — Healing / Granulating Wound          (Mild-Recovering)
+///   Type_2 — Clean Wound                          (Mild)
+///   Type_3 — Infected Wound                       (Moderate)        ← specialist
+///   Type_4 — Infected Wound with Slough           (Moderate-Severe) ← specialist
+///   Type_5 — Dry Necrotic Wound                   (Moderate-Severe)
+///   Type_6 — Cavity / Undermining Wound           (Severe)          ← specialist
+///   Type_7 — Severely Infected Necrotic Wound     (Severe-Critical)
+///   Type_8 — Critical Wound                       (Critical)
 class WoundTypesDatabase {
-  
-  /// Get all available wound type names
-  static List<String> getAllWoundTypes() {
-    return [
-      'Abrasion',
-      'Bruise',
-      'Burn',
-      'Cut',
-      'Diabetic Wound',
-      'Laceration',
-      'Normal',
-      'Pressure Wound',
-      'Surgical Wound',
-      'Venous Wound',
-    ];
+
+  // ─────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────
+
+  /// True for a valid 1-based wound type ID (1–8).
+  static bool isValidTypeId(int typeId) => typeId >= 1 && typeId <= 8;
+
+  /// Returns the type name for a 1-based integer ID (e.g. 3 → 'Type_3').
+  ///
+  /// Throws [ArgumentError] for an ID outside 1–8. There is deliberately no
+  /// fallback: silently showing an unknown wound as Type 1 (the mildest)
+  /// would hide a bug behind the least alarming advice.
+  static String getWoundTypeName(int typeId) {
+    if (!isValidTypeId(typeId)) {
+      throw ArgumentError.value(typeId, 'typeId', 'Wound type must be 1–8');
+    }
+    return 'Type_$typeId';
   }
 
-  /// Map Roboflow class names to standardized wound type names
-  static String normalizeClassName(String roboflowClass) {
-    final normalized = roboflowClass.toLowerCase().trim();
-    
-    final mapping = {
-      'abrasions': 'Abrasion',
-      'abrasion': 'Abrasion',
-      'bruises': 'Bruise',
-      'bruise': 'Bruise',
-      'burns': 'Burn',
-      'burn': 'Burn',
-      'cut': 'Cut',
-      'cuts': 'Cut',
-      'diabetic_wounds': 'Diabetic Wound',
-      'diabetic_wound': 'Diabetic Wound',
-      'diabetic': 'Diabetic Wound',
-      'laseration': 'Laceration',
-      'laceration': 'Laceration',
-      'lacerations': 'Laceration',
-      'normal': 'Normal',
-      'pressure_wounds': 'Pressure Wound',
-      'pressure_wound': 'Pressure Wound',
-      'pressure_ulcer': 'Pressure Wound',
-      'surgical_wounds': 'Surgical Wound',
-      'surgical_wound': 'Surgical Wound',
-      'surgical': 'Surgical Wound',
-      'venous_wounds': 'Venous Wound',
-      'venous_wound': 'Venous Wound',
-      'venous': 'Venous Wound',
-    };
-    
-    return mapping[normalized] ?? roboflowClass;
+  /// Returns true for types that require a clinician/specialist to verify the
+  /// prediction before acting on the management plan.
+  static bool requiresSpecialistConfirmation(int typeId) =>
+      _entry(getWoundTypeName(typeId))['specialistRequired'] as bool;
+
+  /// The Wound Care Quick Reference management plan for [typeId] — the one
+  /// source for both what the results screen shows and what is saved with an
+  /// AI result.
+  static WoundManagement getManagement(int typeId) {
+    final m = _entry(getWoundTypeName(typeId))['management']
+        as Map<String, dynamic>;
+    return WoundManagement(
+      dressingMaterials: List<String>.from(m['dressingMaterials']),
+      dressingNotes: m['dressingNotes'] as String?,
+      antibioticRecommendation: m['antibioticRecommendation'] as String,
+      surgicalProcedures: List<String>.from(m['surgicalProcedures']),
+    );
   }
 
-  /// Get detailed data for a specific wound type
-  static Map<String, dynamic> getWoundTypeData(String woundType) {
-    return _woundDatabase[woundType] ?? _woundDatabase['Normal']!;
+  /// Returns full clinical data for [woundType] ('Type_1' … 'Type_8').
+  /// Throws [ArgumentError] for any other name.
+  static Map<String, dynamic> getWoundTypeData(String woundType) =>
+      _entry(woundType);
+
+  static Map<String, dynamic> _entry(String woundType) {
+    final data = _woundDatabase[woundType];
+    if (data == null) {
+      throw ArgumentError.value(woundType, 'woundType', 'Unknown wound type');
+    }
+    return data;
   }
 
-  /// Complete wound database with characteristics and management
+  // ─────────────────────────────────────────────
+  // Clinical database
+  // ─────────────────────────────────────────────
+
   static final Map<String, Map<String, dynamic>> _woundDatabase = {
-    'Abrasion': {
-      'severity': 'Mild',
-      'characteristics': {
-        'necroticTissue': '< 25%',
-        'infection': 'No infection',
-        'exudateLevel': 'Dry/Minimal',
-        'tissueClassification': ['Superficial dermis', 'Raw surface', 'Minor bleeding'],
-      },
-      'management': {
-        'dressingMaterials': [
-          'Non-adherent dressing',
-          'Hydrocolloid thin film',
-          'Transparent film dressing',
-          'Antibiotic ointment (if needed)',
-        ],
-        'antibioticRecommendation': 'Not typically required unless signs of infection',
-        'surgicalProcedures': [
-          'Clean wound with saline or water',
-          'Remove debris or foreign material',
-          'No suturing typically required',
-          'Change dressing daily or when soiled',
-        ],
-        'additionalNotes': 'Usually heals within 5-7 days without scarring if kept clean.',
-      },
-      'estimatedHealingTime': '5-7 days',
-    },
 
-    'Bruise': {
-      'severity': 'Mild',
+    // ── Type 1 ── <25% necrotic/slough · no infection · dry ──────────────
+    'Type_1': {
+      'displayName': 'Type 1',
+      'specialistRequired': false,
+      'severity': 'Mild (Recovering)',
+      // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
-        'necroticTissue': '< 25%',
-        'infection': 'No infection',
-        'exudateLevel': 'Dry/Minimal',
-        'tissueClassification': ['Intact skin', 'Subcutaneous bleeding', 'Discoloration'],
+        'necroticTissue': 'Necrotic tissue / slough <25%',
+        'infection': 'No signs of infection',
+        'exudateLevel': 'Dry / minimal exudates',
+        'tissueClassification': <String>[],
       },
       'management': {
-        'dressingMaterials': [
-          'Cold compress (first 24-48 hours)',
-          'Warm compress (after 48 hours)',
-          'No dressing typically required',
-        ],
+        'dressingMaterials': ['Foam', 'Polymeric membrane', 'Island dressing'],
+        'dressingNotes': null,
         'antibioticRecommendation': 'No',
         'surgicalProcedures': [
-          'Rest and elevation',
-          'Ice application (15-20 min intervals)',
-          'Monitor for expansion or pain increase',
-          'No surgical intervention unless severe hematoma',
+          'Ready for secondary wound closure',
+          'If wound is small, continue dressing till wound heals by secondary intention',
+          'Frequency of dressing varies depending on wound type and dressing material used',
         ],
-        'additionalNotes': 'Bruising color changes from red/purple to yellow/green as it heals.',
       },
-      'estimatedHealingTime': '2-4 weeks',
     },
 
-    'Burn': {
-      'severity': 'Moderate to Critical',
+    // ── Type 2 ── <25% necrotic/slough · no infection · wet ──────────────
+    'Type_2': {
+      'displayName': 'Type 2',
+      'specialistRequired': false,
+      'severity': 'Mild',
+      // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
-        'necroticTissue': 'Varies (< 25% to > 25% depending on degree)',
-        'infection': 'High risk of infection',
-        'exudateLevel': 'Moderate/Wet',
-        'tissueClassification': ['Damaged epidermis', 'Possible dermis involvement', 'Blistering'],
+        'necroticTissue': 'Necrotic tissue / slough <25%',
+        'infection': 'No signs of infection',
+        'exudateLevel': 'Moderate exudates / wet',
+        'tissueClassification': <String>[],
       },
       'management': {
-        'dressingMaterials': [
-          'Silver sulfadiazine cream',
-          'Hydrogel (for cooling and moisture)',
-          'Non-adherent dressing',
-          'Silver dressing',
-          'Foam dressing for exudate absorption',
-        ],
-        'antibioticRecommendation': 'Yes, topical initially; systemic if infected',
+        'dressingMaterials': ['Foam', 'Alginate', 'Hydrofiber', 'Polymeric membrane'],
+        'dressingNotes': null,
+        'antibioticRecommendation':
+            'May or may not, based on tissue C&S result or other infectious disease, and current guidelines',
         'surgicalProcedures': [
-          'Cool burn with running water (not ice)',
-          'Debride broken blisters if infected',
-          'Skin grafting for deep burns (third-degree)',
-          'Daily dressing changes',
-          'Monitor for infection signs',
+          'Find underlying cause',
+          'Treat underlying cause if necessary',
         ],
-        'additionalNotes': 'First-degree: 7-10 days. Second-degree: 2-3 weeks. Third-degree: requires grafting.',
       },
-      'estimatedHealingTime': '7 days to several months',
     },
 
-    'Cut': {
-      'severity': 'Mild to Moderate',
-      'characteristics': {
-        'necroticTissue': '< 25%',
-        'infection': 'Low risk if clean',
-        'exudateLevel': 'Minimal to Moderate',
-        'tissueClassification': ['Clean edges', 'Dermis involvement', 'Possible bleeding'],
-      },
-      'management': {
-        'dressingMaterials': [
-          'Sterile gauze',
-          'Non-stick pad',
-          'Adhesive bandage (for small cuts)',
-          'Transparent film dressing',
-        ],
-        'antibioticRecommendation': 'Only if contaminated or signs of infection',
-        'surgicalProcedures': [
-          'Clean with saline solution',
-          'Apply direct pressure to stop bleeding',
-          'Suture or Steri-Strips if deep (> 0.5 cm)',
-          'Tetanus shot if needed',
-          'Change dressing daily',
-        ],
-        'additionalNotes': 'Small cuts heal in 7-10 days. Deep cuts may take 2-3 weeks.',
-      },
-      'estimatedHealingTime': '7-21 days',
-    },
-
-    'Diabetic Wound': {
-      'severity': 'Moderate to Critical',
-      'characteristics': {
-        'necroticTissue': '> 25% (often)',
-        'infection': 'High risk of infection',
-        'exudateLevel': 'Varies (Dry to Moderate)',
-        'tissueClassification': ['Poor vascularization', 'Necrotic tissue', 'Slow granulation'],
-      },
-      'management': {
-        'dressingMaterials': [
-          'Hydrogel (for debridement)',
-          'Alginate (for exudate)',
-          'Hydrofiber',
-          'Silver dressing',
-          'Foam dressing',
-          'Collagen dressing',
-        ],
-        'antibioticRecommendation': 'Yes, broad-spectrum based on C&S',
-        'surgicalProcedures': [
-          'Debride necrotic tissue regularly',
-          'Offload pressure (specialized footwear)',
-          'Monitor blood glucose strictly',
-          'Assess vascular status',
-          'Consider hyperbaric oxygen therapy',
-          'Amputation if gangrene develops',
-        ],
-        'additionalNotes': 'Requires multidisciplinary care: endocrinologist, vascular surgeon, podiatrist.',
-      },
-      'estimatedHealingTime': '4-12 weeks or longer',
-    },
-
-    'Laceration': {
+    // ── Type 3 ── <25% necrotic/slough · infection · dry ─────────────────
+    'Type_3': {
+      'displayName': 'Type 3',
       'severity': 'Moderate',
+      'specialistRequired': true,
+      // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
-        'necroticTissue': '< 25%',
-        'infection': 'Moderate risk',
-        'exudateLevel': 'Moderate',
-        'tissueClassification': ['Irregular edges', 'Deeper tissue involvement', 'Bleeding'],
+        'necroticTissue': 'Necrotic tissue / slough <25%',
+        'infection': 'Presence of infection',
+        'exudateLevel': 'Dry / minimal exudates',
+        'tissueClassification': <String>[],
       },
       'management': {
         'dressingMaterials': [
-          'Sterile gauze',
-          'Non-adherent dressing',
-          'Foam dressing',
-          'Island dressing',
+          'Tulle*',
+          'Hydrogel*',
+          'Hydrocolloid*',
+          'Silver dressing*',
+          'Iodine base dressing*',
+          'Any secondary dressing**',
         ],
-        'antibioticRecommendation': 'Consider if contaminated or high infection risk',
-        'surgicalProcedures': [
-          'Irrigate thoroughly with saline',
-          'Suture primary closure if < 12 hours old',
-          'Delayed closure if contaminated',
-          'Tetanus prophylaxis',
-          'Remove sutures in 7-14 days',
-        ],
-        'additionalNotes': 'Face lacerations: 5-7 days. Body: 10-14 days. Lower extremity: 14-21 days.',
+        'dressingNotes':
+            '*May require secondary dressing\n**Options: Gamgee, gauze, foam, island dressing, etc.',
+        'antibioticRecommendation':
+            'Yes, based on tissue C&S result and current guidelines',
+        'surgicalProcedures': ['Debridement may be needed'],
       },
-      'estimatedHealingTime': '10-21 days',
     },
 
-    'Normal': {
-      'severity': 'None',
+    // ── Type 4 ── <25% necrotic/slough · infection · wet ─────────────────
+    'Type_4': {
+      'displayName': 'Type 4',
+      'severity': 'Moderate-Severe',
+      'specialistRequired': true,
+      // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
-        'necroticTissue': '0%',
-        'infection': 'No infection',
-        'exudateLevel': 'None',
-        'tissueClassification': ['Intact skin', 'Normal coloration', 'No damage'],
+        'necroticTissue': 'Necrotic tissue / slough <25%',
+        'infection': 'Presence of infection',
+        'exudateLevel': 'Moderate exudates / wet',
+        'tissueClassification': <String>[],
       },
       'management': {
-        'dressingMaterials': ['No dressing required'],
+        'dressingMaterials': [
+          'Alginate*',
+          'Foam',
+          'Silver*',
+          'Hydrofiber*',
+          'Polymeric membrane',
+          'Iodine base dressing*',
+        ],
+        'dressingNotes': '*May require secondary dressing',
+        'antibioticRecommendation':
+            'Yes, based on tissue C&S result and current guidelines',
+        'surgicalProcedures': ['Debridement may be needed'],
+      },
+    },
+
+    // ── Type 5 ── >25% necrotic/slough · no infection · dry ──────────────
+    'Type_5': {
+      'displayName': 'Type 5',
+      'specialistRequired': false,
+      'severity': 'Moderate-Severe',
+      // Wording from the Wound Care Quick Reference slide for this type
+      'characteristics': {
+        'necroticTissue': 'Necrotic tissue / slough >25%',
+        'infection': 'No signs of infection',
+        'exudateLevel': 'Dry / minimal exudates',
+        'tissueClassification': <String>[],
+      },
+      'management': {
+        'dressingMaterials': [
+          'Hydrogel*',
+          'Hydrocolloid',
+          'Polymeric membrane',
+          'Composite medical grade honey*',
+        ],
+        'dressingNotes': '*May require secondary dressing',
         'antibioticRecommendation': 'No',
-        'surgicalProcedures': ['No treatment needed', 'Routine skin care'],
-        'additionalNotes': 'No wound detected. Normal healthy skin.',
+        'surgicalProcedures': ['Debridement is needed'],
       },
-      'estimatedHealingTime': 'N/A',
     },
 
-    'Pressure Wound': {
-      'severity': 'Moderate to Critical',
+    // ── Type 6 ── >25% necrotic/slough · no infection · wet ──────────────
+    'Type_6': {
+      'displayName': 'Type 6',
+      'severity': 'Severe',
+      'specialistRequired': true,
+      // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
-        'necroticTissue': '< 25% to > 25% (depends on stage)',
-        'infection': 'Moderate to high risk',
-        'exudateLevel': 'Varies by stage',
-        'tissueClassification': ['Tissue necrosis', 'Undermining', 'Possible bone exposure'],
+        'necroticTissue': 'Necrotic tissue / slough >25%',
+        'infection': 'No signs of infection',
+        'exudateLevel': 'Moderate exudates / wet',
+        'tissueClassification': <String>[],
       },
       'management': {
         'dressingMaterials': [
-          'Hydrocolloid (Stage I-II)',
-          'Foam dressing',
-          'Alginate (exuding wounds)',
-          'Hydrogel (dry necrotic tissue)',
-          'Silver dressing (infected)',
+          'Alginate*',
+          'Foam',
+          'Polymeric membrane',
+          'Hydrofiber*',
         ],
-        'antibioticRecommendation': 'Yes if infected or deep',
+        'dressingNotes': '*May require secondary dressing',
+        'antibioticRecommendation':
+            'May or may not, based on tissue C&S result or other infectious disease, and current guidelines',
         'surgicalProcedures': [
-          'Debridement of necrotic tissue',
-          'Pressure redistribution (repositioning every 2 hours)',
-          'Specialized mattress/cushion',
-          'Nutritional support',
-          'Surgical flap closure for Stage III-IV',
+          'Surgical/mechanical debridement is recommended',
+          'May need repeated debridement',
         ],
-        'additionalNotes': 'Prevention is key: turn/reposition frequently, manage moisture, nutrition.',
       },
-      'estimatedHealingTime': 'Weeks to months (stage dependent)',
     },
 
-    'Surgical Wound': {
-      'severity': 'Mild to Moderate',
+    // ── Type 7 ── >25% necrotic/slough · infection · dry ─────────────────
+    'Type_7': {
+      'displayName': 'Type 7',
+      'specialistRequired': false,
+      'severity': 'Severe-Critical',
+      // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
-        'necroticTissue': '< 25%',
-        'infection': 'Low risk if clean',
-        'exudateLevel': 'Minimal to Moderate',
-        'tissueClassification': ['Clean incision', 'Sutured/stapled', 'Controlled edges'],
+        'necroticTissue': 'Necrotic tissue / slough >25%',
+        'infection': 'Presence of infection',
+        'exudateLevel': 'Dry / minimal exudates',
+        'tissueClassification': <String>[],
       },
       'management': {
         'dressingMaterials': [
-          'Sterile gauze',
-          'Transparent film dressing',
-          'Foam dressing',
-          'Island dressing',
-          'Non-adherent pad',
+          'Silver*',
+          'Hydrogel*',
+          'Hydrocolloid',
+          'Iodine based dressing*',
+          'Polymeric membrane',
+          'Composite medical grade honey*',
         ],
-        'antibioticRecommendation': 'Prophylactic perioperative antibiotics',
-        'surgicalProcedures': [
-          'Keep incision clean and dry',
-          'Change dressing per surgeon instructions',
-          'Monitor for dehiscence or infection',
-          'Remove sutures/staples per schedule (7-14 days)',
-          'Avoid stress on incision',
-        ],
-        'additionalNotes': 'Most heal uneventfully in 2-3 weeks. Report redness, warmth, or drainage.',
+        'dressingNotes': null,
+        'antibioticRecommendation':
+            'Yes, based on tissue C&S result and current guidelines',
+        'surgicalProcedures': ['Surgical debridement is strongly recommended'],
       },
-      'estimatedHealingTime': '2-3 weeks',
     },
 
-    'Venous Wound': {
-      'severity': 'Moderate',
+    // ── Type 8 ── >25% necrotic/slough · infection · wet ─────────────────
+    'Type_8': {
+      'displayName': 'Type 8',
+      'specialistRequired': false,
+      'severity': 'Critical',
+      // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
-        'necroticTissue': '< 25%',
-        'infection': 'Moderate risk',
-        'exudateLevel': 'Moderate/Wet',
-        'tissueClassification': ['Irregular borders', 'Shallow', 'Hemosiderin staining'],
+        'necroticTissue': 'Necrotic tissue / slough >25%',
+        'infection': 'Presence of infection',
+        'exudateLevel': 'Moderate exudates / wet',
+        'tissueClassification': <String>[],
       },
       'management': {
         'dressingMaterials': [
-          'Foam dressing (high exudate)',
-          'Alginate',
-          'Hydrofiber',
-          'Compression bandages (essential)',
-          'Zinc paste bandages',
+          'Alginate*',
+          'Hydrofiber*',
+          'Foam*',
+          'Polymeric membrane*',
+          'Iodine base dressing*',
+          'Silver*',
+          'Charcoal*',
         ],
-        'antibioticRecommendation': 'Only if signs of infection',
-        'surgicalProcedures': [
-          'Compression therapy (20-30 mmHg)',
-          'Leg elevation when resting',
-          'Debride slough if present',
-          'Exercise to improve venous return',
-          'Treat underlying venous insufficiency',
-        ],
-        'additionalNotes': 'Compression is the cornerstone of treatment. Address venous hypertension.',
+        'dressingNotes':
+            '*Require combination or composite antimicrobial dressing (moisture control + antimicrobial)\nCharcoal can be used for odour management',
+        'antibioticRecommendation':
+            'Yes, based on tissue C&S result and current guidelines',
+        'surgicalProcedures': ['Surgical debridement is strongly recommended'],
       },
-      'estimatedHealingTime': '3-6 months',
     },
   };
 }

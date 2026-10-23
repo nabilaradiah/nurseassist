@@ -1,367 +1,279 @@
 import 'dart:io';
-import 'dart:convert';
-import 'dart:typed_data';
-import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
+import 'package:tflite_flutter/tflite_flutter.dart';
 import '../models/wound_assessment.dart';
 import '../models/wound_types_database.dart';
 import 'ai_config.dart';
+import 'skin_detection_service.dart';
 
-/// Comprehensive Wound Analysis Service with multiple AI implementation options
-/// 
-/// Supports:
-/// 1. Cloud-based AI API (Roboflow, Custom APIs, Azure/AWS/GCP)
-/// 2. On-device TensorFlow Lite model
-/// 3. Enhanced rule-based analysis (fallback)
-/// 
-/// Configuration: See lib/services/ai_config.dart
+/// Thrown by [WoundAnalysisService.analyzeWound] when the model's top-class
+/// confidence falls below [AIConfig.noWoundConfidenceThreshold] and the guard
+/// is enabled.  Callers should prompt the user to retake the photo rather than
+/// displaying analysis results.
+class NoWoundDetectedException implements Exception {
+  final String message;
+  const NoWoundDetectedException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when the AI model can't analyse the photo (e.g. it failed to load
+/// or run). The app then lets the nurse continue without an AI result and
+/// set the wound type through the TIME assessment, instead of guessing.
+class AiUnavailableException implements Exception {
+  final String message;
+  const AiUnavailableException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+/// Wound Analysis Service
+///
+/// Analyses a wound photo with the on-device EfficientNetB0 model ('tflite').
+/// There is deliberately no guessing fallback: if the model can't run, an
+/// [AiUnavailableException] is thrown and the nurse's TIME assessment sets
+/// the wound type instead.
+///
+/// Switch the active method in lib/services/ai_config.dart → analysisMethod.
 class WoundAnalysisService {
-  
-  // ========== MAIN ANALYSIS METHOD ==========
-  /// Main entry point for wound analysis
-  /// Routes to appropriate analysis method based on configuration
+  // ──────────────────────────────────────────────────────────────────────────
+  // Internal state
+  // ──────────────────────────────────────────────────────────────────────────
+
+  Interpreter? _interpreter;
+  bool _modelLoaded = false;
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Public API
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Main entry point. Runs the skin gate, then the TFLite model.
+  ///
+  /// Throws [NoWoundDetectedException] when the photo doesn't look like a
+  /// wound, and [AiUnavailableException] when the model can't produce a
+  /// result — never a made-up classification.
   Future<WoundAnalysisResult> analyzeWound(File imageFile) async {
     try {
-      final method = AIConfig.analysisMethod;
-      print('🔍 Starting wound analysis using method: $method');
-      print('📊 Configuration status: ${AIConfig.getConfigurationStatus()}');
-      
-      switch (method) {
-        case 'cloud':
-          if (!AIConfig.isConfigured()) {
-            print('⚠️ Cloud API not configured, falling back to enhanced rules');
-            return await _analyzeWithEnhancedRules(imageFile);
-          }
-          return await _analyzeWithCloudAPI(imageFile);
-        case 'tflite':
-          return await _analyzeWithTFLite(imageFile);
-        case 'enhanced_mock':
-          return await _analyzeWithEnhancedRules(imageFile);
-        default:
-          print('⚠️ Unknown analysis method, falling back to enhanced mock');
-          return await _analyzeWithEnhancedRules(imageFile);
+      // ── Skin detection gate (runs before the wound classifier) ───────────
+      if (AIConfig.skinDetectionEnabled) {
+        final hasSkin = await SkinDetectionService.containsSkin(imageFile);
+        if (!hasSkin) {
+          throw const NoWoundDetectedException(
+            'No skin detected — please ensure the wound area is clearly visible.',
+          );
+        }
       }
+
+      final method = AIConfig.analysisMethod;
+      print('🔍 Starting wound analysis — method: $method');
+      print('📊 Config: ${AIConfig.getConfigurationStatus()}');
+
+      if (method != 'tflite') {
+        throw AiUnavailableException(
+          'AI analysis method "$method" is not available.',
+        );
+      }
+      return await _analyzeWithTFLite(imageFile);
+    } on NoWoundDetectedException {
+      rethrow;
+    } on AiUnavailableException {
+      rethrow;
     } catch (e) {
       print('❌ Analysis error: $e');
-      // Fallback to enhanced rules if any method fails
-      print('🔄 Falling back to enhanced rule-based analysis');
-      return await _analyzeWithEnhancedRules(imageFile);
+      throw AiUnavailableException(
+        'The AI model could not analyse this photo.',
+      );
     }
   }
 
-  // ========== CLOUD-BASED AI ANALYSIS ==========
-  /// Analyze wound using cloud-based API (Roboflow, Custom API, etc.)
-  Future<WoundAnalysisResult> _analyzeWithCloudAPI(File imageFile) async {
+  /// Release interpreter resources.  Call when the owning widget is disposed.
+  void dispose() {
+    _interpreter?.close();
+    _interpreter = null;
+    _modelLoaded = false;
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // TFLite on-device inference
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Load the TFLite interpreter from assets (once; cached for subsequent
+  /// calls).
+  Future<void> _loadModel() async {
+    if (_modelLoaded) return;
+
     try {
-      // Preprocess image
-      final processedImage = await _preprocessImage(imageFile);
-      final base64Image = base64Encode(processedImage);
-      
-      // Try Roboflow first
-      final response = await http.post(
-        Uri.parse('${AIConfig.roboflowEndpoint}?api_key=${AIConfig.roboflowApiKey}'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: base64Image,
-      ).timeout(Duration(seconds: AIConfig.apiTimeout));
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return _parseRoboflowResponse(data);
-      } else if (response.statusCode == 401) {
-        throw Exception('Invalid API key. Please configure your Roboflow API key.');
-      } else {
-        throw Exception('API returned status ${response.statusCode}');
-      }
+      final options = InterpreterOptions()..threads = 2;
+      _interpreter = await Interpreter.fromAsset(
+        'assets/${AIConfig.tfliteModelPath}',
+        options: options,
+      );
+      _modelLoaded = true;
+      print('✅ TFLite model loaded (${AIConfig.tfliteModelPath})');
     } catch (e) {
-      print('Cloud API error: $e');
+      print('❌ Failed to load TFLite model: $e');
       rethrow;
     }
   }
 
-  /// Parse Roboflow API response
-  WoundAnalysisResult _parseRoboflowResponse(Map<String, dynamic> data) {
-    // Roboflow Classification response structure:
-    // {
-    //   "predictions": [
-    //     {"class": "Diabetic Wound", "confidence": 0.92}
-    //   ],
-    //   "top": "Diabetic Wound",
-    //   "confidence": 0.92
-    // }
-    
-    String className;
-    double confidence;
-    
-    // Try different response formats
-    if (data['top'] != null && data['confidence'] != null) {
-      // Classification format
-      className = data['top'] as String;
-      confidence = (data['confidence'] as num).toDouble();
-    } else if (data['predictions'] != null && data['predictions'].isNotEmpty) {
-      // Object detection format
-      final prediction = data['predictions'][0];
-      className = prediction['class'] as String;
-      confidence = (prediction['confidence'] as num).toDouble();
-    } else {
-      throw Exception('Unexpected Roboflow response format');
-    }
-    
-    // Normalize class name to match database
-    final woundType = WoundTypesDatabase.normalizeClassName(className);
-    
-    print('🎯 Roboflow prediction: $className (normalized: $woundType), confidence: ${(confidence * 100).toStringAsFixed(1)}%');
-    
-    return _generateResultForWoundType(woundType, confidence);
-  }
-
-  // ========== TENSORFLOW LITE ANALYSIS ==========
-  /// Analyze wound using on-device TensorFlow Lite model
+  /// Run inference with the on-device EfficientNetB0 model.
+  ///
+  /// The model expects:
+  ///   Input  : [1, 224, 224, 3]  float32  — pixel values 0–255 (no /255
+  ///             normalisation; EfficientNetB0's built-in preprocessing layer
+  ///             handles that inside the model graph)
+  ///   Output : [1, 8]            float32  — softmax probabilities for Type_1…8
   Future<WoundAnalysisResult> _analyzeWithTFLite(File imageFile) async {
-    // Note: This requires tflite_flutter package and a trained .tflite model
-    // The model file should be placed in assets/models/wound_classifier.tflite
-    
-    try {
-      // This is a placeholder - actual implementation requires:
-      // 1. Load the .tflite model
-      // 2. Preprocess image to model's input shape
-      // 3. Run inference
-      // 4. Post-process output
-      
-      print('⚠️ TFLite analysis not yet implemented');
-      print('📋 To implement:');
-      print('   1. Add wound_classifier.tflite to assets/models/');
-      print('   2. Uncomment tflite_flutter in pubspec.yaml');
-      print('   3. Implement model loading and inference');
-      
-      // For now, fall back to enhanced rules
-      return await _analyzeWithEnhancedRules(imageFile);
-      
-      // IMPLEMENTATION TEMPLATE:
-      /*
-      import 'package:tflite_flutter/tflite_flutter.dart';
-      
-      final interpreter = await Interpreter.fromAsset('assets/models/wound_classifier.tflite');
-      final inputImage = await _preprocessImageForTFLite(imageFile);
-      final output = List.filled(8, 0).reshape([1, 8]); // 8 classes
-      
-      interpreter.run(inputImage, output);
-      
-      final probabilities = output[0] as List<double>;
-      final maxIndex = probabilities.indexOf(probabilities.reduce(max));
-      final confidence = probabilities[maxIndex];
-      
-      interpreter.close();
-      
-      return _generateResultForWoundType(maxIndex + 1, confidence);
-      */
-    } catch (e) {
-      print('TFLite error: $e');
-      rethrow;
+    // ── Skin detection gate (MediaPipe) ──────────────────────────────────────
+    // Runs before TFLite inference so non-skin images are rejected cheaply.
+    if (AIConfig.skinDetectionEnabled) {
+      print('🔬 Running skin detection gate…');
+      final hasSkin = await SkinDetectionService.containsSkin(imageFile);
+      if (!hasSkin) {
+        print('🚫 Skin gate: no skin detected — rejecting image');
+        throw NoWoundDetectedException(
+          'No skin detected in the image. Please ensure the wound area '
+          'is clearly visible and well-lit in the frame.',
+        );
+      }
+      print('✅ Skin gate passed — proceeding to wound classification');
     }
-  }
 
-  // ========== ENHANCED RULE-BASED ANALYSIS ==========
-  /// Advanced rule-based analysis using image characteristics
-  /// This is a sophisticated fallback that analyzes actual image features
-  Future<WoundAnalysisResult> _analyzeWithEnhancedRules(File imageFile) async {
-    try {
-      print('🔬 Performing enhanced rule-based analysis...');
-      
-      // Analyze image characteristics
-      final characteristics = await _analyzeImageCharacteristics(imageFile);
-      
-      // Determine wound type based on characteristics
-      final woundTypeId = _classifyFromCharacteristics(characteristics);
-      final confidence = _calculateConfidence(characteristics);
-      final woundTypeName = WoundTypesDatabase.getAllWoundTypes()[woundTypeId - 1];
-      
-      print('✅ Analysis complete: Type $woundTypeName, Confidence: ${(confidence * 100).toStringAsFixed(1)}%');
-      
-      return _generateResultForWoundType(woundTypeName, confidence);
-    } catch (e) {
-      print('Enhanced analysis error: $e');
-      // Ultimate fallback: return Type 1 (Abrasion) with low confidence
-      return _generateResultForWoundType('Abrasion', 0.5);
-    }
-  }
+    await _loadModel();
 
-  /// Analyze image characteristics (color, texture, size estimation)
-  Future<Map<String, dynamic>> _analyzeImageCharacteristics(File imageFile) async {
+    final interpreter = _interpreter!;
+    final h = AIConfig.tfliteInputHeight; // 224
+    final w = AIConfig.tfliteInputWidth; // 224
+    // channels = 3 (RGB) — tensor is built pixel-by-pixel as [r, g, b]
+    final numClasses = AIConfig.tfliteNumClasses; // 8
+
+    // ── 1. Preprocess image → [1, 224, 224, 3] float32 ───────────────────
     final bytes = await imageFile.readAsBytes();
-    final image = img.decodeImage(bytes);
-    
-    if (image == null) {
-      return {'error': 'Could not decode image'};
-    }
-    
-    // Analyze color composition
-    int redTotal = 0, greenTotal = 0, blueTotal = 0;
-    int darkPixels = 0, brightPixels = 0;
-    int totalPixels = image.width * image.height;
-    
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final pixel = image.getPixel(x, y);
-        final r = pixel.r.toInt();
-        final g = pixel.g.toInt();
-        final b = pixel.b.toInt();
-        
-        redTotal += r;
-        greenTotal += g;
-        blueTotal += b;
-        
-        final brightness = (r + g + b) / 3;
-        if (brightness < 80) darkPixels++;
-        if (brightness > 180) brightPixels++;
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) throw Exception('Cannot decode image');
+
+    final resized = img.copyResize(decoded, width: w, height: h);
+
+    // Build input tensor: shape [1, h, w, c]
+    final input = List.generate(
+      1,
+      (_) => List.generate(
+        h,
+        (y) => List.generate(w, (x) {
+          final pixel = resized.getPixel(x, y);
+          // Return float values 0–255 (model normalises internally)
+          return [pixel.r.toDouble(), pixel.g.toDouble(), pixel.b.toDouble()];
+        }),
+      ),
+    );
+
+    // ── 2. Run inference ─────────────────────────────────────────────────
+    // Output tensor: shape [1, numClasses]
+    final output = List.generate(
+      1,
+      (_) => List<double>.filled(numClasses, 0.0),
+    );
+
+    interpreter.run(input, output);
+
+    final probabilities = output[0];
+
+    // ── 3. Argmax → wound type ───────────────────────────────────────────
+    int maxIdx = 0;
+    double maxProb = probabilities[0];
+    for (int i = 1; i < probabilities.length; i++) {
+      if (probabilities[i] > maxProb) {
+        maxProb = probabilities[i];
+        maxIdx = i;
       }
     }
-    
-    final avgRed = redTotal / totalPixels;
-    final avgGreen = greenTotal / totalPixels;
-    final avgBlue = blueTotal / totalPixels;
-    
-    // Calculate color ratios
-    final redness = avgRed / (avgGreen + avgBlue + 1);
-    final darkness = darkPixels / totalPixels;
-    final brightness = brightPixels / totalPixels;
-    
-    return {
-      'redness': redness,
-      'darkness': darkness,
-      'brightness': brightness,
-      'avgRed': avgRed,
-      'avgGreen': avgGreen,
-      'avgBlue': avgBlue,
-      'width': image.width,
-      'height': image.height,
-    };
-  }
 
-  /// Classify wound type from image characteristics
-  int _classifyFromCharacteristics(Map<String, dynamic> chars) {
-    final redness = chars['redness'] as double;
-    final darkness = chars['darkness'] as double;
-    final brightness = chars['brightness'] as double;
-    
-    // Classification logic based on visual characteristics
-    // Type 1-2: Lighter wounds with moderate redness
-    if (darkness < 0.3 && redness < 1.2) {
-      return brightness > 0.4 ? 1 : 2;
-    }
-    
-    // Type 3-4: Moderate darkness with infection signs
-    if (darkness >= 0.3 && darkness < 0.5) {
-      return redness > 1.3 ? 3 : 4;
-    }
-    
-    // Type 5-6: Darker wounds with necrotic tissue
-    if (darkness >= 0.5 && darkness < 0.7) {
-      return redness > 1.1 ? 6 : 5;
-    }
-    
-    // Type 7-8: Very dark wounds (necrotic/infected)
-    if (darkness >= 0.7) {
-      return redness > 1.4 ? 8 : 7;
-    }
-    
-    // Default to type 1
-    return 1;
-  }
+    // Model output index 0 → Type_1, index 7 → Type_8
+    final typeId = maxIdx + 1;
+    final typeName = WoundTypesDatabase.getWoundTypeName(typeId);
+    final confidence = maxProb;
 
-  /// Calculate confidence score based on characteristic clarity
-  double _calculateConfidence(Map<String, dynamic> chars) {
-    // Base confidence
-    double confidence = 0.75;
-    
-    final redness = chars['redness'] as double;
-    final darkness = chars['darkness'] as double;
-    
-    // Higher confidence for clear characteristics
-    if (redness > 1.5 || redness < 0.8) confidence += 0.10;
-    if (darkness > 0.6 || darkness < 0.2) confidence += 0.10;
-    
-    // Cap at 0.95 for rule-based analysis
-    return confidence > 0.95 ? 0.95 : confidence;
-  }
-
-  // ========== IMAGE PREPROCESSING ==========
-  /// Preprocess image for AI analysis
-  Future<Uint8List> _preprocessImage(File imageFile) async {
-    final bytes = await imageFile.readAsBytes();
-    final image = img.decodeImage(bytes);
-    
-    if (image == null) return bytes;
-    
-    // Resize to optimal size from config
-    final resized = img.copyResize(
-      image, 
-      width: AIConfig.targetImageWidth, 
-      height: AIConfig.targetImageHeight
+    print(
+      '🎯 TFLite → $typeName  confidence: ${(confidence * 100).toStringAsFixed(1)}%',
     );
-    
-    // Encode back to bytes with configured quality
-    return Uint8List.fromList(img.encodeJpg(resized, quality: AIConfig.imageQuality));
+
+    // ── No-wound guard ────────────────────────────────────────────────────────
+    // If the guard is enabled and the model isn't confident enough, the image
+    // probably isn't a wound photo.  Toggle via AIConfig.noWoundDetectionEnabled.
+    if (AIConfig.noWoundDetectionEnabled &&
+        confidence < AIConfig.noWoundConfidenceThreshold) {
+      print(
+        '🚫 No-wound guard triggered — '
+        '${(confidence * 100).toStringAsFixed(1)}% < '
+        '${(AIConfig.noWoundConfidenceThreshold * 100).toStringAsFixed(0)}% threshold',
+      );
+      throw NoWoundDetectedException(
+        'No wound detected — model confidence '
+        '${(confidence * 100).toStringAsFixed(1)}% is below the '
+        '${(AIConfig.noWoundConfidenceThreshold * 100).toStringAsFixed(0)}% threshold.',
+      );
+    }
+    print('   Full probabilities: ${_formatProbabilities(probabilities)}');
+
+    return _generateResultForWoundType(
+      typeId,
+      confidence,
+      List<double>.from(probabilities),
+    );
   }
 
-  /// Generate wound analysis result using the wound types database
-  WoundAnalysisResult _generateResultForWoundType(String woundTypeName, [double? confidence]) {
-    final woundData = WoundTypesDatabase.getWoundTypeData(woundTypeName);
-    final characteristics = woundData['characteristics'] as Map<String, dynamic>;
-    final management = woundData['management'] as Map<String, dynamic>;
+  // ──────────────────────────────────────────────────────────────────────────
+  // Shared helpers
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Build a [WoundAnalysisResult] from the wound types database.
+  WoundAnalysisResult _generateResultForWoundType(
+    int typeId,
+    double confidence,
+    List<double> allClassProbabilities,
+  ) {
+    final typeName = WoundTypesDatabase.getWoundTypeName(typeId);
+    final woundData = WoundTypesDatabase.getWoundTypeData(typeName);
+    final characteristics =
+        woundData['characteristics'] as Map<String, dynamic>;
 
     return WoundAnalysisResult(
-      confidenceScore: confidence ?? 0.88, // Use provided or default
-      woundType: WoundTypesDatabase.getAllWoundTypes().indexOf(woundTypeName) + 1, // Keep numeric ID for backward compatibility
-      woundName: woundTypeName,
+      confidenceScore: confidence,
+      woundType: typeId,
+      woundName: typeName,
       severity: woundData['severity'] as String,
-      estimatedSize: 15.0, // Can be calculated from image analysis
+      estimatedSize: null,
+      allClassProbabilities: allClassProbabilities,
       characteristics: WoundCharacteristics(
         necroticTissue: characteristics['necroticTissue'] as String,
         infection: characteristics['infection'] as String,
         exudateLevel: characteristics['exudateLevel'] as String,
-        tissueClassification: List<String>.from(characteristics['tissueClassification']),
+        tissueClassification: List<String>.from(
+          characteristics['tissueClassification'],
+        ),
       ),
-      management: WoundManagement(
-        dressingMaterials: List<String>.from(management['dressingMaterials']),
-        antibioticRecommendation: management['antibioticRecommendation'] as String,
-        surgicalProcedures: List<String>.from(management['surgicalProcedures']),
-        additionalNotes: management['additionalNotes'] as String?,
-      ),
-      segmentationMapUrl: null, // Can be generated by AI model
+      management: WoundTypesDatabase.getManagement(typeId),
+      segmentationMapUrl: null,
     );
   }
 
-  // Old methods below are kept for backward compatibility if needed
-  // Can be removed once fully migrated to new database
-
-  // Old methods below are kept for backward compatibility if needed
-  // Can be removed once fully migrated to new database
-
-  // Deprecated methods removed - use WoundTypesDatabase instead
-
-  // Check if wound type requires specialist confirmation for debridement
-  bool requiresSpecialistConfirmation(int woundType) {
-    return woundType == 3 || woundType == 4 || woundType == 6;
+  /// Human-readable probability vector for debug logging.
+  String _formatProbabilities(List<double> probs) {
+    return probs
+        .asMap()
+        .entries
+        .map((e) => 'Type_${e.key + 1}: ${(e.value * 100).toStringAsFixed(1)}%')
+        .join(', ');
   }
 
-  // Parse AI API response (implement based on your AI service)
-  // Uncomment this method when you integrate a real AI API
-  /*
-  WoundAnalysisResult _parseAIResponse(Map<String, dynamic> data) {
-    // Implement parsing logic based on your AI service response format
-    // Example structure:
-    return WoundAnalysisResult(
-      confidenceScore: data['confidence'],
-      woundType: data['wound_type'],
-      woundName: data['classification'],
-      severity: data['severity'],
-      estimatedSize: data['size_cm2'],
-      characteristics: WoundCharacteristics.fromJson(data['characteristics']),
-      management: _getManagementForType(data['wound_type']),
-      segmentationMapUrl: data['segmentation_url'],
-    );
-  }
-  */
+  // ──────────────────────────────────────────────────────────────────────────
+  // Utility
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Returns true for wound types that require a specialist to confirm the
+  /// model prediction before the management plan is acted upon.
+  bool requiresSpecialistConfirmation(int woundTypeId) =>
+      WoundTypesDatabase.requiresSpecialistConfirmation(woundTypeId);
 }
