@@ -1,6 +1,5 @@
 /// Configuration for AI/ML wound analysis services
 library;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AIConfig {
   // ========== ANALYSIS METHOD SELECTION ==========
@@ -8,27 +7,18 @@ class AIConfig {
   /// - 'tflite': Use on-device TensorFlow Lite model (primary)
 
   static const String analysisMethod = 'tflite';
-  
+
   // ========== TFLITE MODEL CONFIGURATION ==========
-  
+
   /// TensorFlow Lite model path (relative to assets/)
   static const String tfliteModelPath = 'models/wound_classifier.tflite';
-  
-  /// Model labels file path
-  static const String tfliteLabelsPath = 'models/wound_labels.txt';
-  
+
   /// Input shape for TFLite model
   static const int tfliteInputHeight = 224;
   static const int tfliteInputWidth = 224;
-  static const int tfliteInputChannels = 3;
-  
+
   /// Number of output classes (Type_1 through Type_8)
   static const int tfliteNumClasses = 8;
-  
-  // ========== ANALYSIS PARAMETERS ==========
-  
-  /// Minimum confidence threshold for accepting AI predictions
-  static const double minConfidenceThreshold = 0.60;
 
   // ========== SKIN DETECTION (MediaPipe pre-check) ==========
 
@@ -58,31 +48,8 @@ class AIConfig {
   /// Start at 0.35 and adjust upward if real wound photos are being rejected,
   /// or downward if non-wound photos are still slipping through.
   static const double noWoundConfidenceThreshold = 0.35;
-  
-  /// Timeout for API requests (in seconds)
-  static const int apiTimeout = 30;
-  
-  /// Maximum image size for upload (in MB)
-  static const int maxImageSizeMB = 5;
-  
-  /// Target image resolution for AI analysis
-  static const int targetImageWidth = 640;
-  static const int targetImageHeight = 640;
-  
-  /// JPEG quality for compressed images
-  static const int imageQuality = 85;
-  
-  // ========== VALIDATION ==========
-  
-  /// Check if configuration is valid for the selected method
-  static bool isConfigured() {
-    switch (analysisMethod) {
-      case 'tflite':
-        return true; // Model existence checked at runtime
-      default:
-        return false;
-    }
-  }
+
+  // ========== STATUS ==========
 
   /// Get user-friendly configuration status message
   static String getConfigurationStatus() {
@@ -93,12 +60,4 @@ class AIConfig {
         return '❌ Invalid analysis method selected';
     }
   }
-}
-
-/// Environment-specific configuration
-/// Override these in production using environment variables
-class EnvironmentConfig {
-  static const bool isProduction = false;
-  static const bool enableLogging = true;
-  static const bool enableAnalytics = false;
 }

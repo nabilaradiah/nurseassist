@@ -44,9 +44,6 @@ class FirestoreService {
     return _parseDocs(querySnapshot.docs, Patient.fromJson);
   }
 
-  // Shared patient list for all staff members
-  Future<List<Patient>> getPatientsByStaffId(String staffId) => getPatients();
-
   /// The patient, or null if it doesn't exist.
   Future<Patient?> getPatient(String patientId) async {
     final doc = await _firestore.collection('patients').doc(patientId).get();
@@ -157,16 +154,6 @@ class FirestoreService {
     return items;
   }
 
-  /// The assessment, or null if it doesn't exist.
-  Future<WoundAssessment?> getWoundAssessment(String assessmentId) async {
-    final doc = await _firestore
-        .collection('woundAssessments')
-        .doc(assessmentId)
-        .get();
-    if (!doc.exists) return null;
-    return WoundAssessment.fromJson({'id': doc.id, ...doc.data()!});
-  }
-
   /// Saves a new assessment and adds it to the patient's list in one batch.
   Future<void> addWoundAssessment(WoundAssessment assessment) async {
     final batch = _firestore.batch()
@@ -191,32 +178,6 @@ class FirestoreService {
       'analysisResult': assessment.analysisResult?.toJson(),
       'additionalNotes': assessment.additionalNotes,
       'specialistConfirmed': assessment.specialistConfirmed,
-    });
-  }
-
-  /// Save a clinician's type correction without touching the original
-  /// modelPredictedType / modelConfidence fields.
-  ///
-  /// Call this instead of [updateWoundAssessment] when a nurse or lecturer
-  /// corrects the wound type so the ML training audit trail stays clean.
-  Future<void> saveClinicianCorrection({
-    required String assessmentId,
-    required int correctedType,
-    required String correctedName,
-    required String correctedBy,
-  }) async {
-    await _firestore
-        .collection('woundAssessments')
-        .doc(assessmentId)
-        .update({
-      'clinicianCorrectedType': correctedType,
-      'clinicianCorrectedName': correctedName,
-      'correctedBy': correctedBy,
-      'correctedAt': FieldValue.serverTimestamp(),
-      // Reset training approval whenever the label changes
-      'approvedForTraining': false,
-      'approvedBy': null,
-      'approvedAt': null,
     });
   }
 
@@ -375,67 +336,5 @@ class FirestoreService {
       SettableMetadata(contentType: 'image/jpeg'),
     );
     return await uploadTask.ref.getDownloadURL();
-  }
-
-  // Initialize sample data
-  Future<void> initializeSampleData() async {
-    try {
-      // Always try to add sample staff (will update if exists)
-      await _firestore.collection('staff').doc('staff1').set({
-        'staffId': '22167',
-        'name': 'AISHA',
-        'department': 'Nursing',
-      });
-
-      // Check if patients already exist
-      final patientsSnapshot = await _firestore
-          .collection('patients')
-          .limit(1)
-          .get();
-      if (patientsSnapshot.docs.isNotEmpty) {
-        return; // Sample data already exists
-      }
-
-      // Add sample patients
-      final patients = [
-        Patient(
-          id: 'patient1',
-          mrn: 'MRN-001234',
-          name: 'Sabrina Elyasa',
-          age: 29,
-          gender: 'Female',
-          contact: '0174067606',
-          registeredDate: DateTime(2025, 12, 14),
-          staffIdAssignedTo: 'WRN-001',
-        ),
-        Patient(
-          id: 'patient2',
-          mrn: 'MRN-001235',
-          name: 'Abdul Wahab',
-          age: 67,
-          gender: 'Male',
-          contact: '0123456789',
-          registeredDate: DateTime(2025, 12, 10),
-          staffIdAssignedTo: 'WRN-001',
-        ),
-        Patient(
-          id: 'patient3',
-          mrn: 'MRN-001236',
-          name: 'Nik Marwaa',
-          age: 32,
-          gender: 'Female',
-          contact: '0198765432',
-          registeredDate: DateTime(2025, 12, 5),
-          staffIdAssignedTo: 'WRN-002',
-        ),
-      ];
-
-      for (var patient in patients) {
-        await addPatient(patient);
-      }
-
-    } catch (_) {
-      // Initialization failed silently
-    }
   }
 }

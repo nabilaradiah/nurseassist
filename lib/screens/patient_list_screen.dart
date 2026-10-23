@@ -48,7 +48,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
       List<Patient> patients = [];
 
       if (currentStaff != null) {
-        patients = await _firestoreService.getPatientsByStaffId(currentStaff.staffId);
+        patients = await _firestoreService.getPatients();
         print('👥 Patient list - Loaded ${patients.length} shared patients');
       }
 

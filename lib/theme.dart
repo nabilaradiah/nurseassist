@@ -20,18 +20,15 @@ const Color kBlue50  = Color(0xFFEAF0FA);
 const Color kBlue100 = Color(0xFFE8EFFF);
 const Color kBlue200 = Color(0xFFD2DCE9);
 const Color kBlue400 = Color(0xFF3C87F4);
-const Color kBlue500 = Color(0xFF4A90D9);
 const Color kBlue600 = Color(0xFF2F65DE);
 const Color kBlue700 = Color(0xFF2F6DEB); // ★ canonical primary
 const Color kBlue800 = Color(0xFF0E5CC3);
-const Color kBlue900 = Color(0xFF0A3F88);
 
 /// THE primary brand blue. Use this for all primary CTAs, focus rings,
 /// FABs and brand-gradient stops. Replaces the six different blues that
 /// were scattered across the app.
 const Color kPrimary      = kBlue700;
 const Color kPrimaryDark  = kBlue800;
-const Color kPrimaryLight = kBlue400;
 const Color kOnPrimary    = Colors.white;
 
 // ── Surfaces & neutrals ────────────────────────────────────────
@@ -42,7 +39,6 @@ const Color kSurface   = Color(0xFFFFFFFF);
 
 const Color kInk1   = Color(0xFF111827); // primary text
 const Color kInk2   = Color(0xFF1B2636); // heading variant
-const Color kInk3   = Color(0xFF1D2736); // dark slate
 const Color kMuted1 = Color(0xFF607085); // secondary text
 const Color kMuted2 = Color(0xFF6C7483); // tertiary / spaced caps
 const Color kMuted3 = Color(0xFF94A3B8); // placeholder
@@ -83,11 +79,9 @@ const LinearGradient kLecturerGradient = LinearGradient(
 // ════════════════════════════════════════════════════════════════
 //  RADII
 // ════════════════════════════════════════════════════════════════
-const double kRadiusSm  = 8;
 const double kRadiusMd  = 10;
 const double kRadiusLg  = 12;
 const double kRadiusXl  = 16;
-const double kRadius2xl = 20;
 const double kRadius3xl = 28; // hero bottom corners
 
 // ════════════════════════════════════════════════════════════════
@@ -111,35 +105,16 @@ final List<BoxShadow> kShadowLecturer = [
 // ════════════════════════════════════════════════════════════════
 //  TYPOGRAPHY
 // ════════════════════════════════════════════════════════════════
-const TextStyle kHDisplay = TextStyle(
-  fontSize: 32, fontWeight: FontWeight.w800,
-  height: 1.1, letterSpacing: -1.0, color: kInk1,
-);
 const TextStyle kH1 = TextStyle(
   fontSize: 26, fontWeight: FontWeight.w700,
   height: 1.2, letterSpacing: -0.4, color: kInk2,
-);
-const TextStyle kH2 = TextStyle(
-  fontSize: 22, fontWeight: FontWeight.w700,
-  height: 1.25, color: kInk2,
 );
 const TextStyle kH3 = TextStyle(
   fontSize: 18, fontWeight: FontWeight.w700,
   height: 1.25, color: kInk2,
 );
-const TextStyle kBody = TextStyle(
-  fontSize: 14, fontWeight: FontWeight.w400,
-  height: 1.5, color: kInk1,
-);
 const TextStyle kBodySm = TextStyle(
   fontSize: 13, color: kMuted1, height: 1.5,
-);
-const TextStyle kLabel = TextStyle(
-  fontSize: 14, fontWeight: FontWeight.w600, color: kInk2,
-);
-const TextStyle kEyebrow = TextStyle(
-  fontSize: 11, fontWeight: FontWeight.w700,
-  letterSpacing: 2.0, color: kMuted2,
 );
 
 // ════════════════════════════════════════════════════════════════

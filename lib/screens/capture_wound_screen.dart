@@ -159,9 +159,10 @@ class _CaptureWoundScreenState extends State<CaptureWoundScreen> {
       _processingStatus = 'Uploading image…';
     });
 
+    // Holds the loaded TFLite model; released in `finally` below
+    final analysisService = WoundAnalysisService();
     try {
       final firestoreService = FirestoreService();
-      final analysisService = WoundAnalysisService();
 
       // Show analyzing dialog
       if (mounted) {
@@ -331,6 +332,7 @@ class _CaptureWoundScreenState extends State<CaptureWoundScreen> {
         );
       }
     } finally {
+      analysisService.dispose();
       if (mounted) setState(() => _isProcessing = false);
     }
   }

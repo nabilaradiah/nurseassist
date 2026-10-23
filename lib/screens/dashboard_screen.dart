@@ -74,7 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       List<Patient> patients = [];
       if (staff != null) {
         patients =
-            await _firestoreService.getPatientsByStaffId(staff.staffId);
+            await _firestoreService.getPatients();
         debugPrint('👥 Loaded ${patients.length} shared patients');
       }
 

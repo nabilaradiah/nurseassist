@@ -20,21 +20,6 @@ class WoundTypesDatabase {
   // Public API
   // ─────────────────────────────────────────────
 
-  /// Returns the ordered list of type names that matches the TFLite model
-  /// class indices (index 0 → 'Type_1', index 7 → 'Type_8').
-  static List<String> getAllWoundTypes() {
-    return [
-      'Type_1',
-      'Type_2',
-      'Type_3',
-      'Type_4',
-      'Type_5',
-      'Type_6',
-      'Type_7',
-      'Type_8',
-    ];
-  }
-
   /// True for a valid 1-based wound type ID (1–8).
   static bool isValidTypeId(int typeId) => typeId >= 1 && typeId <= 8;
 

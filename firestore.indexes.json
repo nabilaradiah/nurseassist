@@ -4,24 +4,28 @@
       "collectionGroup": "woundAssessments",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "approvedForTraining", "order": "ASCENDING" },
-        { "fieldPath": "clinicianCorrectedType", "order": "ASCENDING" }
+        {
+          "fieldPath": "approvedForTraining",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "clinicianCorrectedType",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "woundAssessments",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "patientId", "order": "ASCENDING" },
-        { "fieldPath": "assessmentDate", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "woundAssessments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "correctedBy", "order": "ASCENDING" },
-        { "fieldPath": "hasSupervisorFeedback", "order": "ASCENDING" }
+        {
+          "fieldPath": "correctedBy",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "hasSupervisorFeedback",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],
