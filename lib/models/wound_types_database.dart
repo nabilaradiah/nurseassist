@@ -1,3 +1,5 @@
+import 'wound_assessment.dart' show WoundManagement;
+
 /// Database of wound types with their characteristics and management protocols
 ///
 /// Wound types are labelled Type_1 through Type_8 to match the TFLite model
@@ -33,82 +35,51 @@ class WoundTypesDatabase {
     ];
   }
 
-  /// Returns the 1-based integer ID for a type name (e.g. 'Type_3' → 3).
-  /// Returns 1 if the name is not recognised.
-  static int getWoundTypeId(String typeName) {
-    final idx = getAllWoundTypes().indexOf(typeName);
-    return idx >= 0 ? idx + 1 : 1;
-  }
+  /// True for a valid 1-based wound type ID (1–8).
+  static bool isValidTypeId(int typeId) => typeId >= 1 && typeId <= 8;
 
   /// Returns the type name for a 1-based integer ID (e.g. 3 → 'Type_3').
-  /// Clamps out-of-range values to Type_1.
+  ///
+  /// Throws [ArgumentError] for an ID outside 1–8. There is deliberately no
+  /// fallback: silently showing an unknown wound as Type 1 (the mildest)
+  /// would hide a bug behind the least alarming advice.
   static String getWoundTypeName(int typeId) {
-    if (typeId < 1 || typeId > 8) return 'Type_1';
+    if (!isValidTypeId(typeId)) {
+      throw ArgumentError.value(typeId, 'typeId', 'Wound type must be 1–8');
+    }
     return 'Type_$typeId';
   }
 
   /// Returns true for types that require a clinician/specialist to verify the
   /// prediction before acting on the management plan.
-  static bool requiresSpecialistConfirmation(String typeName) {
-    return typeName == 'Type_3' || typeName == 'Type_4' || typeName == 'Type_6';
+  static bool requiresSpecialistConfirmation(int typeId) =>
+      _entry(getWoundTypeName(typeId))['specialistRequired'] as bool;
+
+  /// The Wound Care Quick Reference management plan for [typeId] — the one
+  /// source for both what the results screen shows and what is saved with an
+  /// AI result.
+  static WoundManagement getManagement(int typeId) {
+    final m = _entry(getWoundTypeName(typeId))['management']
+        as Map<String, dynamic>;
+    return WoundManagement(
+      dressingMaterials: List<String>.from(m['dressingMaterials']),
+      dressingNotes: m['dressingNotes'] as String?,
+      antibioticRecommendation: m['antibioticRecommendation'] as String,
+      surgicalProcedures: List<String>.from(m['surgicalProcedures']),
+    );
   }
 
-  /// Maps raw TFLite output strings to the canonical Type_N format.
-  /// Safe to call with any string.
-  static String normalizeClassName(String rawClass) {
-    final s = rawClass.trim();
+  /// Returns full clinical data for [woundType] ('Type_1' … 'Type_8').
+  /// Throws [ArgumentError] for any other name.
+  static Map<String, dynamic> getWoundTypeData(String woundType) =>
+      _entry(woundType);
 
-    // Already in canonical form
-    if (RegExp(r'^Type_[1-8]$').hasMatch(s)) return s;
-
-    // Lower-case variant — e.g. 'type_3'
-    final lower = s.toLowerCase();
-    final lowerMatch = RegExp(r'^type_([1-8])$').firstMatch(lower);
-    if (lowerMatch != null) return 'Type_${lowerMatch.group(1)}';
-
-    // Numeric only — e.g. model returns '3'
-    final numMatch = RegExp(r'^([1-8])$').firstMatch(s);
-    if (numMatch != null) return 'Type_${numMatch.group(1)}';
-
-    // Common alternative class name strings → canonical Type_N
-    const roboflowMap = <String, String>{
-      'normal':          'Type_1', // healed / normal skin → healing category
-      'abrasion':        'Type_2',
-      'abrasions':       'Type_2',
-      'cut':             'Type_2',
-      'cuts':            'Type_2',
-      'bruise':          'Type_2',
-      'bruises':         'Type_2',
-      'surgical_wound':  'Type_2',
-      'surgical_wounds': 'Type_2',
-      'surgical':        'Type_2',
-      'burn':            'Type_3',
-      'burns':           'Type_3',
-      'laceration':      'Type_3',
-      'lacerations':     'Type_3',
-      'laseration':      'Type_3',
-      'venous_wound':    'Type_3',
-      'venous_wounds':   'Type_3',
-      'venous':          'Type_3',
-      'diabetic_wound':  'Type_5',
-      'diabetic_wounds': 'Type_5',
-      'diabetic':        'Type_5',
-      'pressure_wound':  'Type_4',
-      'pressure_wounds': 'Type_4',
-      'pressure_ulcer':  'Type_4',
-    };
-
-    return roboflowMap[lower] ?? 'Type_1';
-  }
-
-  /// Returns full clinical data for the requested wound type.
-  /// Falls back to Type_1 for unrecognised names.
-  static Map<String, dynamic> getWoundTypeData(String woundType) {
-    // Normalise before lookup so 'type_3', '3', legacy names all work
-    final key = RegExp(r'^Type_[1-8]$').hasMatch(woundType)
-        ? woundType
-        : normalizeClassName(woundType);
-    return _woundDatabase[key] ?? _woundDatabase['Type_1']!;
+  static Map<String, dynamic> _entry(String woundType) {
+    final data = _woundDatabase[woundType];
+    if (data == null) {
+      throw ArgumentError.value(woundType, 'woundType', 'Unknown wound type');
+    }
+    return data;
   }
 
   // ─────────────────────────────────────────────
@@ -120,6 +91,7 @@ class WoundTypesDatabase {
     // ── Type 1 ── <25% necrotic/slough · no infection · dry ──────────────
     'Type_1': {
       'displayName': 'Type 1',
+      'specialistRequired': false,
       'severity': 'Mild (Recovering)',
       // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
@@ -129,33 +101,21 @@ class WoundTypesDatabase {
         'tissueClassification': <String>[],
       },
       'management': {
-        'dressingMaterials': [
-          'Non-adherent silicone contact layer (e.g. Mepitel)',
-          'Foam dressing (light absorbency)',
-          'Hydrocolloid (to support epithelialisation)',
-          'Transparent film dressing (for shallow wounds)',
-        ],
-        'antibioticRecommendation':
-            'Not required — maintain moist wound environment only',
+        'dressingMaterials': ['Foam', 'Polymeric membrane', 'Island dressing'],
+        'dressingNotes': null,
+        'antibioticRecommendation': 'No',
         'surgicalProcedures': [
           'Ready for secondary wound closure',
-          'Gentle cleansing with normal saline — avoid trauma to fragile tissue',
-          'Apply non-adherent dressing to protect granulation tissue',
-          'Change dressing every 3–5 days (minimise disruption)',
-          'Protect from pressure, friction and trauma',
-          'Monitor for signs of regression (new slough or exudate increase)',
+          'If wound is small, continue dressing till wound heals by secondary intention',
+          'Frequency of dressing varies depending on wound type and dressing material used',
         ],
-        'additionalNotes':
-            'Good progress — continue current wound care plan.  Ensure adequate '
-            'nutrition (protein and vitamin C) to sustain healing.  '
-            'Sun protection for new epithelium; scar management once fully closed.',
       },
-      'estimatedHealingTime': '1–4 weeks (to complete closure)',
     },
 
     // ── Type 2 ── <25% necrotic/slough · no infection · wet ──────────────
     'Type_2': {
       'displayName': 'Type 2',
+      'specialistRequired': false,
       'severity': 'Mild',
       // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
@@ -165,25 +125,15 @@ class WoundTypesDatabase {
         'tissueClassification': <String>[],
       },
       'management': {
-        'dressingMaterials': [
-          'Foam dressing',
-          'Polymeric membrane',
-          'Island dressing',
-          'Non-adherent dressing',
-        ],
+        'dressingMaterials': ['Foam', 'Alginate', 'Hydrofiber', 'Polymeric membrane'],
+        'dressingNotes': null,
         'antibioticRecommendation':
-            'May or may not be required, based on underlying cause',
+            'May or may not, based on tissue C&S result or other infectious disease, and current guidelines',
         'surgicalProcedures': [
           'Find underlying cause',
           'Treat underlying cause if necessary',
-          'Cleanse with normal saline or clean water',
-          'Apply non-adherent dressing; change every 1–3 days or when soiled',
         ],
-        'additionalNotes':
-            'Heals within 5–10 days with proper hygiene.  Monitor for '
-            'erythema, warmth or increased pain that may signal early infection.',
       },
-      'estimatedHealingTime': '5–14 days',
     },
 
     // ── Type 3 ── <25% necrotic/slough · infection · dry ─────────────────
@@ -200,29 +150,19 @@ class WoundTypesDatabase {
       },
       'management': {
         'dressingMaterials': [
-          'Tulle* (may require secondary dressing)',
-          'Hydrogel* (may require secondary dressing)',
-          'Hydrocolloid* (may require secondary dressing)',
-          'Silver dressing* (antimicrobial)',
-          'Iodine-based dressing* (e.g. Betadine tulle)',
-          'Any secondary dressing** (Gamgee, gauze, foam, island dressing)',
+          'Tulle*',
+          'Hydrogel*',
+          'Hydrocolloid*',
+          'Silver dressing*',
+          'Iodine base dressing*',
+          'Any secondary dressing**',
         ],
+        'dressingNotes':
+            '*May require secondary dressing\n**Options: Gamgee, gauze, foam, island dressing, etc.',
         'antibioticRecommendation':
-            'Yes, based on C&S report of infected tissue — topical antiseptic first; '
-            'systemic antibiotics if no improvement within 48 hours',
-        'surgicalProcedures': [
-          'Debridement may be needed',
-          'Wound swab for culture and sensitivity (C&S)',
-          'Thorough irrigation with normal saline',
-          'Apply silver/antimicrobial dressing; change daily or every 2 days',
-          'Review in 48 hours — refer to clinician if worsening',
-        ],
-        'additionalNotes':
-            '⚠ Clinician verification required.  Cellulitis, lymphangitis or '
-            'systemic fever warrants urgent medical review.  Document exudate '
-            'colour, odour and wound margin changes at every dressing change.',
+            'Yes, based on tissue C&S result and current guidelines',
+        'surgicalProcedures': ['Debridement may be needed'],
       },
-      'estimatedHealingTime': '2–6 weeks (infection-dependent)',
     },
 
     // ── Type 4 ── <25% necrotic/slough · infection · wet ─────────────────
@@ -239,33 +179,24 @@ class WoundTypesDatabase {
       },
       'management': {
         'dressingMaterials': [
-          'Alginate* (may require secondary dressing)',
-          'Foam dressing',
-          'Silver dressing* (antimicrobial)',
-          'Hydrofiber* (e.g. Aquacel Ag)',
+          'Alginate*',
+          'Foam',
+          'Silver*',
+          'Hydrofiber*',
           'Polymeric membrane',
-          'Iodine-based dressing* (antimicrobial)',
+          'Iodine base dressing*',
         ],
+        'dressingNotes': '*May require secondary dressing',
         'antibioticRecommendation':
-            'Yes, based on C&S report of infected tissue',
-        'surgicalProcedures': [
-          'Debridement may be needed',
-          'Irrigate wound bed with normal saline',
-          'Mechanical or enzymatic debridement of slough',
-          'Wound swab for C&S',
-          'Change dressing every 1–2 days depending on exudate',
-        ],
-        'additionalNotes':
-            '⚠ Clinician verification required.  Persistent slough despite '
-            'debridement should prompt review for underlying osteomyelitis or '
-            'vascular insufficiency.  Protect periwound skin with skin barrier cream.',
+            'Yes, based on tissue C&S result and current guidelines',
+        'surgicalProcedures': ['Debridement may be needed'],
       },
-      'estimatedHealingTime': '4–12 weeks',
     },
 
     // ── Type 5 ── >25% necrotic/slough · no infection · dry ──────────────
     'Type_5': {
       'displayName': 'Type 5',
+      'specialistRequired': false,
       'severity': 'Moderate-Severe',
       // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
@@ -276,26 +207,15 @@ class WoundTypesDatabase {
       },
       'management': {
         'dressingMaterials': [
-          'Hydrogel* (to rehydrate and soften eschar)',
-          'Hydrocolloid (after eschar loosens)',
+          'Hydrogel*',
+          'Hydrocolloid',
           'Polymeric membrane',
-          'Composite medical grade honey* (autolytic debridement)',
+          'Composite medical grade honey*',
         ],
-        'antibioticRecommendation':
-            'No — not required unless infection signs emerge after debridement',
-        'surgicalProcedures': [
-          'Debridement is needed',
-          'Moisturise eschar with hydrogel to facilitate autolytic debridement',
-          'Do NOT forcibly remove hard eschar on heels without vascular assessment',
-          'Sharp/surgical debridement by qualified clinician',
-          'Assess peripheral vascular status before debridement',
-        ],
-        'additionalNotes':
-            'Hard heel eschar may act as a protective barrier — consult vascular '
-            'team before debriding.  Ensure adequate nutrition and hydration to '
-            'support healing.',
+        'dressingNotes': '*May require secondary dressing',
+        'antibioticRecommendation': 'No',
+        'surgicalProcedures': ['Debridement is needed'],
       },
-      'estimatedHealingTime': '4–12 weeks',
     },
 
     // ── Type 6 ── >25% necrotic/slough · no infection · wet ──────────────
@@ -312,31 +232,25 @@ class WoundTypesDatabase {
       },
       'management': {
         'dressingMaterials': [
-          'Alginate* (may require secondary dressing)',
-          'Foam dressing',
+          'Alginate*',
+          'Foam',
           'Polymeric membrane',
-          'Hydrofiber* (e.g. Aquacel)',
+          'Hydrofiber*',
         ],
+        'dressingNotes': '*May require secondary dressing',
         'antibioticRecommendation':
-            'May or may not be required, based on underlying cause',
+            'May or may not, based on tissue C&S result or other infectious disease, and current guidelines',
         'surgicalProcedures': [
           'Surgical/mechanical debridement is recommended',
           'May need repeated debridement',
-          'Irrigate cavity thoroughly with saline',
-          'Pack wound cavity loosely with alginate or hydrofiber',
-          'Measure cavity depth and width at each dressing change',
         ],
-        'additionalNotes':
-            '⚠ Clinician verification required.  Track wound dimensions to '
-            'monitor progress.  Consider Negative Pressure Wound Therapy (NPWT) '
-            'for deep cavities.  Escalate if spreading infection or systemic signs.',
       },
-      'estimatedHealingTime': '6–16 weeks (debridement-dependent)',
     },
 
     // ── Type 7 ── >25% necrotic/slough · infection · dry ─────────────────
     'Type_7': {
       'displayName': 'Type 7',
+      'specialistRequired': false,
       'severity': 'Severe-Critical',
       // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
@@ -347,34 +261,24 @@ class WoundTypesDatabase {
       },
       'management': {
         'dressingMaterials': [
-          'Silver dressing* (antimicrobial cover)',
-          'Hydrogel* (moisture balance)',
+          'Silver*',
+          'Hydrogel*',
           'Hydrocolloid',
-          'Iodine-based dressing*',
+          'Iodine based dressing*',
           'Polymeric membrane',
           'Composite medical grade honey*',
         ],
+        'dressingNotes': null,
         'antibioticRecommendation':
-            'Yes, based on C&S report of infected tissue — IV broad-spectrum '
-            'empirical cover while awaiting results',
-        'surgicalProcedures': [
-          'Surgical debridement is strongly recommended',
-          'Urgent wound swab for C&S',
-          'Consider IV antibiotics if systemic signs present',
-          'Daily wound assessment post-operatively',
-          'Refer to surgical team if spreading infection or gas in tissue',
-        ],
-        'additionalNotes':
-            'Escalate immediately if the patient shows fever, tachycardia, '
-            'hypotension or confusion — these suggest systemic sepsis.  Document '
-            'neurovascular status of affected limb at every assessment.',
+            'Yes, based on tissue C&S result and current guidelines',
+        'surgicalProcedures': ['Surgical debridement is strongly recommended'],
       },
-      'estimatedHealingTime': '3–6 months (surgery-dependent)',
     },
 
     // ── Type 8 ── >25% necrotic/slough · infection · wet ─────────────────
     'Type_8': {
       'displayName': 'Type 8',
+      'specialistRequired': false,
       'severity': 'Critical',
       // Wording from the Wound Care Quick Reference slide for this type
       'characteristics': {
@@ -385,33 +289,20 @@ class WoundTypesDatabase {
       },
       'management': {
         'dressingMaterials': [
-          'Alginate* (exudate control)',
-          'Hydrofiber* (high absorbency)',
-          'Foam* (secondary layer)',
+          'Alginate*',
+          'Hydrofiber*',
+          'Foam*',
           'Polymeric membrane*',
-          'Iodine-based dressing* (antimicrobial)',
-          'Silver dressing* (antimicrobial)',
-          'Charcoal dressing* (odour management)',
+          'Iodine base dressing*',
+          'Silver*',
+          'Charcoal*',
         ],
+        'dressingNotes':
+            '*Require combination or composite antimicrobial dressing (moisture control + antimicrobial)\nCharcoal can be used for odour management',
         'antibioticRecommendation':
-            'Yes, based on C&S report of infected tissue — combination or '
-            'composite antimicrobial dressings required (exudate control + '
-            'antimicrobial).  Charcoal can be used for odour management.',
-        'surgicalProcedures': [
-          'Surgical debridement is strongly recommended',
-          'URGENT surgical review — do not delay',
-          'Radical surgical debridement or amputation may be required',
-          'ICU admission if haemodynamic instability',
-          'IV fluid resuscitation and sepsis management',
-          'Reconstructive surgery (flap/graft) once infection controlled',
-        ],
-        'additionalNotes':
-            'URGENT — Refer immediately to surgeon/emergency department.  '
-            'Risk of limb loss and life-threatening sepsis.  Involve '
-            'multidisciplinary team: surgeon, infectious disease, vascular, '
-            'intensivist.  Document every assessment with time-stamp.',
+            'Yes, based on tissue C&S result and current guidelines',
+        'surgicalProcedures': ['Surgical debridement is strongly recommended'],
       },
-      'estimatedHealingTime': 'Months to > 1 year (if limb salvaged)',
     },
   };
 }

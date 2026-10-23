@@ -341,134 +341,6 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
     );
   }
 
-  // ─── Hardcoded management data per wound type ─────────────────
-  Map<String, dynamic> _getManagementInfo(int woundType) {
-    switch (woundType) {
-      case 1:
-        return {
-          'dressing': ['Foam', 'Polymeric membrane', 'Island dressing'],
-          'dressingNotes': null,
-          'antibiotic': 'No',
-          'surgical': [
-            'Ready for secondary wound closure',
-            'If wound is small, continue dressing till wound heals by secondary intention',
-            'Frequency of dressing varies depending on wound type and dressing material used',
-          ],
-          'requiresSpecialistConfirmation': false,
-        };
-      case 2:
-        return {
-          'dressing': ['Foam', 'Alginate', 'Hydrofiber', 'Polymeric membrane'],
-          'dressingNotes': null,
-          'antibiotic':
-              'May or may not, based on tissue C&S result or other infectious disease, and current guidelines',
-          'surgical': [
-            'Find underlying cause',
-            'Treat underlying cause if necessary',
-          ],
-          'requiresSpecialistConfirmation': false,
-        };
-      case 3:
-        return {
-          'dressing': [
-            'Tulle*',
-            'Hydrogel*',
-            'Hydrocolloid*',
-            'Silver dressing*',
-            'Iodine base dressing*',
-            'Any secondary dressing**',
-          ],
-          'dressingNotes':
-              '*May require secondary dressing\n**Options: Gamgee, gauze, foam, island dressing, etc.',
-          'antibiotic':
-              'Yes, based on tissue C&S result and current guidelines',
-          'surgical': ['Debridement may be needed'],
-          'requiresSpecialistConfirmation': true,
-        };
-      case 4:
-        return {
-          'dressing': [
-            'Alginate*',
-            'Foam',
-            'Silver*',
-            'Hydrofiber*',
-            'Polymeric membrane',
-            'Iodine base dressing*',
-          ],
-          'dressingNotes': '*May require secondary dressing',
-          'antibiotic':
-              'Yes, based on tissue C&S result and current guidelines',
-          'surgical': ['Debridement may be needed'],
-          'requiresSpecialistConfirmation': true,
-        };
-      case 5:
-        return {
-          'dressing': [
-            'Hydrogel*',
-            'Hydrocolloid',
-            'Polymeric membrane',
-            'Composite medical grade honey*',
-          ],
-          'dressingNotes': '*May require secondary dressing',
-          'antibiotic': 'No',
-          'surgical': ['Debridement is needed'],
-          'requiresSpecialistConfirmation': false,
-        };
-      case 6:
-        return {
-          'dressing': [
-            'Alginate*',
-            'Foam',
-            'Polymeric membrane',
-            'Hydrofiber*',
-          ],
-          'dressingNotes': '*May require secondary dressing',
-          'antibiotic':
-              'May or may not, based on tissue C&S result or other infectious disease, and current guidelines',
-          'surgical': [
-            'Surgical/mechanical debridement is recommended',
-            'May need repeated debridement',
-          ],
-          'requiresSpecialistConfirmation': true,
-        };
-      case 7:
-        return {
-          'dressing': [
-            'Silver*',
-            'Hydrogel*',
-            'Hydrocolloid',
-            'Iodine based dressing*',
-            'Polymeric membrane',
-            'Composite medical grade honey*',
-          ],
-          'dressingNotes': null,
-          'antibiotic':
-              'Yes, based on tissue C&S result and current guidelines',
-          'surgical': ['Surgical debridement is strongly recommended'],
-          'requiresSpecialistConfirmation': false,
-        };
-      case 8:
-      default:
-        return {
-          'dressing': [
-            'Alginate*',
-            'Hydrofiber*',
-            'Foam*',
-            'Polymeric membrane*',
-            'Iodine base dressing*',
-            'Silver*',
-            'Charcoal*',
-          ],
-          'dressingNotes':
-              '*Require combination or composite antimicrobial dressing (moisture control + antimicrobial)\nCharcoal can be used for odour management',
-          'antibiotic':
-              'Yes, based on tissue C&S result and current guidelines',
-          'surgical': ['Surgical debridement is strongly recommended'],
-          'requiresSpecialistConfirmation': false,
-        };
-    }
-  }
-
   Future<void> _openEditAssessment() async {
     final current = _assessment.analysisResult;
     if (current == null) {
@@ -821,8 +693,9 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
     // Null when the AI was unavailable; the TIME assessment sets the type
     final result = _assessment.analysisResult;
 
-    // Use clinician-corrected type for management if one exists
-    final mgmt = _getManagementInfo(_assessment.displayWoundType);
+    // Management follows the type currently shown (supervisor > clinician >
+    // AI); null until the wound has a type
+    final woundType = _assessment.displayWoundType;
 
     return Scaffold(
       backgroundColor: const Color(0xFFEEF2FF),
@@ -905,8 +778,8 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
             _buildAccordionSection(
               number: 2,
               title: 'Wound Management',
-              child: _assessment.hasWoundType
-                  ? _buildWoundManagementContent(mgmt)
+              child: woundType != null
+                  ? _buildWoundManagementContent(woundType)
                   : _buildManagementPending(),
             ),
 
@@ -1485,7 +1358,7 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
                 const SizedBox(height: 2),
                 Text(
                   classified
-                      ? _assessment.displayWoundName
+                      ? _assessment.displayWoundName!
                       : 'Complete the TIME assessment',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   maxLines: 1,
@@ -2957,12 +2830,14 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
   // ════════════════════════════════════════════════════════════════
   //  SECTION 2 — WOUND MANAGEMENT
   // ════════════════════════════════════════════════════════════════
-  Widget _buildWoundManagementContent(Map<String, dynamic> mgmt) {
-    final dressing = mgmt['dressing'] as List<String>;
-    final dressingNotes = mgmt['dressingNotes'] as String?;
-    final antibiotic = mgmt['antibiotic'] as String;
-    final surgical = mgmt['surgical'] as List<String>;
-    final requiresConfirmation = mgmt['requiresSpecialistConfirmation'] as bool;
+  Widget _buildWoundManagementContent(int woundType) {
+    final mgmt = WoundTypesDatabase.getManagement(woundType);
+    final dressing = mgmt.dressingMaterials;
+    final dressingNotes = mgmt.dressingNotes;
+    final antibiotic = mgmt.antibioticRecommendation;
+    final surgical = mgmt.surgicalProcedures;
+    final requiresConfirmation =
+        WoundTypesDatabase.requiresSpecialistConfirmation(woundType);
 
     final antibioticIsYes = antibiotic.toLowerCase().startsWith('yes');
     final antibioticIsMaybe = antibiotic.toLowerCase().startsWith('may');
@@ -3325,13 +3200,11 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
   Widget _buildBottomBar() {
     // Follow the wound type currently shown (e.g. after a TIME assessment
     // changes it), not only the AI's original type at capture time
+    final woundType = _assessment.displayWoundType;
     final needsGating =
         _assessment.requiresSpecialistConfirmation ||
-        (_assessment.hasWoundType &&
-            _getManagementInfo(
-                  _assessment.displayWoundType,
-                )['requiresSpecialistConfirmation']
-                as bool);
+        (woundType != null &&
+            WoundTypesDatabase.requiresSpecialistConfirmation(woundType));
     final isSaveBlocked = needsGating && !_specialistConfirmed;
 
     return Column(

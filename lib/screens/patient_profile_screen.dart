@@ -650,7 +650,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                       Expanded(
                         child: Text(
                           assessment.hasWoundType
-                              ? assessment.displayWoundName
+                              ? assessment.displayWoundName!
                               : 'TIME assessment needed',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

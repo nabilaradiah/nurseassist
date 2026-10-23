@@ -218,7 +218,7 @@ class WoundAnalysisService {
     print('   Full probabilities: ${_formatProbabilities(probabilities)}');
 
     return _generateResultForWoundType(
-      typeName,
+      typeId,
       confidence,
       List<double>.from(probabilities),
     );
@@ -230,18 +230,18 @@ class WoundAnalysisService {
 
   /// Build a [WoundAnalysisResult] from the wound types database.
   WoundAnalysisResult _generateResultForWoundType(
-    String typeName, [
-    double? confidence,
-    List<double>? allClassProbabilities,
-  ]) {
+    int typeId,
+    double confidence,
+    List<double> allClassProbabilities,
+  ) {
+    final typeName = WoundTypesDatabase.getWoundTypeName(typeId);
     final woundData = WoundTypesDatabase.getWoundTypeData(typeName);
     final characteristics =
         woundData['characteristics'] as Map<String, dynamic>;
-    final management = woundData['management'] as Map<String, dynamic>;
 
     return WoundAnalysisResult(
-      confidenceScore: confidence ?? 0.85,
-      woundType: WoundTypesDatabase.getWoundTypeId(typeName),
+      confidenceScore: confidence,
+      woundType: typeId,
       woundName: typeName,
       severity: woundData['severity'] as String,
       estimatedSize: null,
@@ -254,13 +254,7 @@ class WoundAnalysisService {
           characteristics['tissueClassification'],
         ),
       ),
-      management: WoundManagement(
-        dressingMaterials: List<String>.from(management['dressingMaterials']),
-        antibioticRecommendation:
-            management['antibioticRecommendation'] as String,
-        surgicalProcedures: List<String>.from(management['surgicalProcedures']),
-        additionalNotes: management['additionalNotes'] as String?,
-      ),
+      management: WoundTypesDatabase.getManagement(typeId),
       segmentationMapUrl: null,
     );
   }
@@ -280,8 +274,6 @@ class WoundAnalysisService {
 
   /// Returns true for wound types that require a specialist to confirm the
   /// model prediction before the management plan is acted upon.
-  bool requiresSpecialistConfirmation(int woundTypeId) {
-    final name = WoundTypesDatabase.getWoundTypeName(woundTypeId);
-    return WoundTypesDatabase.requiresSpecialistConfirmation(name);
-  }
+  bool requiresSpecialistConfirmation(int woundTypeId) =>
+      WoundTypesDatabase.requiresSpecialistConfirmation(woundTypeId);
 }

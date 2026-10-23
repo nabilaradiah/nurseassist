@@ -133,18 +133,17 @@ class WoundAssessment {
 
   /// Returns the wound type to display in the UI.
   /// Prefers the supervisor reassignment, then the clinician correction.
-  int get displayWoundType =>
+  /// Null when there is no type yet (see [hasWoundType]) — never a guess.
+  int? get displayWoundType =>
       supervisorCorrectedType ??
       clinicianCorrectedType ??
-      analysisResult?.woundType ??
-      1;
+      analysisResult?.woundType;
 
-  /// Returns the wound type name to display.
-  String get displayWoundName =>
+  /// Returns the wound type name to display, or null when there is no type.
+  String? get displayWoundName =>
       supervisorCorrectedName ??
       clinicianCorrectedName ??
-      analysisResult?.woundName ??
-      'Type_1';
+      analysisResult?.woundName;
 
   /// True once the wound has a type from the lecturer, the nurse's TIME
   /// assessment or the AI. False only when the AI was unavailable and no
@@ -702,12 +701,15 @@ class WoundCharacteristics {
 
 class WoundManagement {
   final List<String> dressingMaterials;
+  /// Footnotes for the starred (*) dressings, from the Quick Reference slide.
+  final String? dressingNotes;
   final String antibioticRecommendation;
   final List<String> surgicalProcedures;
   final String? additionalNotes;
 
   WoundManagement({
     required this.dressingMaterials,
+    this.dressingNotes,
     required this.antibioticRecommendation,
     required this.surgicalProcedures,
     this.additionalNotes,
@@ -715,6 +717,7 @@ class WoundManagement {
 
   Map<String, dynamic> toJson() => {
         'dressingMaterials': dressingMaterials,
+        'dressingNotes': dressingNotes,
         'antibioticRecommendation': antibioticRecommendation,
         'surgicalProcedures': surgicalProcedures,
         'additionalNotes': additionalNotes,
@@ -723,6 +726,7 @@ class WoundManagement {
   factory WoundManagement.fromJson(Map<String, dynamic> json) =>
       WoundManagement(
         dressingMaterials: List<String>.from(json['dressingMaterials']),
+        dressingNotes: json['dressingNotes'],
         antibioticRecommendation: json['antibioticRecommendation'],
         surgicalProcedures: List<String>.from(json['surgicalProcedures']),
         additionalNotes: json['additionalNotes'],
