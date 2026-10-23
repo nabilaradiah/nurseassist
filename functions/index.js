@@ -57,6 +57,32 @@ exports.copyApprovedWoundImage = functions.region('asia-southeast1').firestore
   });
 
 /**
+ * Triggered when a woundAssessment document is deleted — on its own or
+ * together with its patient. Deletes the wound photo from Storage so no
+ * orphaned patient images are left behind. The client can't do this itself:
+ * Storage rules only let the uploading nurse delete their own photos.
+ * Copies already approved into training-data/ are kept.
+ */
+exports.deleteWoundImageOnAssessmentDelete = functions.region('asia-southeast1').firestore
+  .document('woundAssessments/{assessmentId}')
+  .onDelete(async (snap, context) => {
+    const assessmentId = context.params.assessmentId;
+    const sourcePath = extractStoragePath(snap.data().imageUrl);
+    if (!sourcePath || !sourcePath.startsWith('wound_images/')) {
+      console.log(`[${assessmentId}] No wound image to delete`);
+      return null;
+    }
+
+    try {
+      await admin.storage().bucket(BUCKET).file(sourcePath).delete({ ignoreNotFound: true });
+      console.log(`[${assessmentId}] Deleted ${sourcePath}`);
+    } catch (err) {
+      console.error(`[${assessmentId}] Could not delete ${sourcePath}:`, err.message);
+    }
+    return null;
+  });
+
+/**
  * Extracts the decoded storage path from a Firebase Storage download URL.
  * e.g. "https://.../o/wound_images%2Fuid%2Ffile.jpg?alt=media"
  *   →  "wound_images/uid/file.jpg"

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
@@ -7,50 +8,50 @@ import '../models/vital_reading.dart';
 import '../models/wound_assessment.dart';
 import '../models/wound_types_database.dart';
 
+/// Reads throw on failure (permission denied, offline, ...) so screens can
+/// show an error instead of an empty list. Writes that touch more than one
+/// document go through a single batch, so they either all happen or none do.
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
+  /// Firestore allows 500 writes per batch; stay well under it.
+  static const int _maxBatchWrites = 450;
+
+  /// Parses every document, skipping (and logging) any that can't be read,
+  /// so one malformed record doesn't hide all the others.
+  List<T> _parseDocs<T>(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    final items = <T>[];
+    for (final doc in docs) {
+      try {
+        items.add(fromJson({'id': doc.id, ...doc.data()}));
+      } catch (e) {
+        debugPrint('⚠️ Skipping unreadable ${doc.reference.path}: $e');
+      }
+    }
+    return items;
+  }
+
   // Patient operations
   Future<List<Patient>> getPatients() async {
-    try {
-      final querySnapshot = await _firestore
-          .collection('patients')
-          .orderBy('registeredDate', descending: true)
-          .get();
-
-      return querySnapshot.docs
-          .map((doc) => Patient.fromJson({'id': doc.id, ...doc.data()}))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    final querySnapshot = await _firestore
+        .collection('patients')
+        .orderBy('registeredDate', descending: true)
+        .get();
+    return _parseDocs(querySnapshot.docs, Patient.fromJson);
   }
 
   // Shared patient list for all staff members
-  Future<List<Patient>> getPatientsByStaffId(String staffId) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection('patients')
-          .orderBy('registeredDate', descending: true)
-          .get();
+  Future<List<Patient>> getPatientsByStaffId(String staffId) => getPatients();
 
-      return querySnapshot.docs
-          .map((doc) => Patient.fromJson({'id': doc.id, ...doc.data()}))
-          .toList();
-    } catch (_) {
-      return getPatients();
-    }
-  }
-
+  /// The patient, or null if it doesn't exist.
   Future<Patient?> getPatient(String patientId) async {
-    try {
-      final doc = await _firestore.collection('patients').doc(patientId).get();
-      if (!doc.exists) return null;
-      return Patient.fromJson({'id': doc.id, ...doc.data()!});
-    } catch (_) {
-      return null;
-    }
+    final doc = await _firestore.collection('patients').doc(patientId).get();
+    if (!doc.exists) return null;
+    return Patient.fromJson({'id': doc.id, ...doc.data()!});
   }
 
   Future<void> addPatient(Patient patient) async {
@@ -60,14 +61,32 @@ class FirestoreService {
         .set(patient.toJson());
   }
 
-  /// Updates the patient's details. Vital readings are left untouched so an
-  /// edit made from a stale copy can never drop a reading recorded meanwhile;
-  /// add readings with [addVitalReading].
-  Future<void> updatePatient(Patient patient) async {
-    await _firestore
-        .collection('patients')
-        .doc(patient.id)
-        .update(patient.toJson()..remove('vitalReadings'));
+  /// Updates the patient's details. Existing vital readings are left
+  /// untouched so an edit made from a stale copy can never drop a reading
+  /// recorded meanwhile; [newReading], if given, is appended in the same
+  /// write.
+  Future<void> updatePatient(Patient patient, {VitalReading? newReading}) async {
+    final data = patient.toJson()..remove('vitalReadings');
+    if (newReading != null) {
+      data['vitalReadings'] = FieldValue.arrayUnion([newReading.toJson()]);
+    }
+    await _firestore.collection('patients').doc(patient.id).update(data);
+  }
+
+  /// Adds [reading] to the patient's history and links it to one wound
+  /// assessment, in a single batch.
+  Future<void> recordAssessmentVitals({
+    required String patientId,
+    required String assessmentId,
+    required VitalReading reading,
+  }) async {
+    final batch = _firestore.batch()
+      ..update(_firestore.collection('patients').doc(patientId), {
+        'vitalReadings': FieldValue.arrayUnion([reading.toJson()]),
+      })
+      ..update(_firestore.collection('woundAssessments').doc(assessmentId),
+          {'vitals': reading.toJson()});
+    await batch.commit();
   }
 
   /// Links a vital-sign reading to one wound assessment. Only the 'vitals'
@@ -87,90 +106,92 @@ class FirestoreService {
     });
   }
 
+  /// The patient with this MRN, or null if there is none. Throws if the
+  /// lookup itself fails, so a failed check is never read as "no duplicate".
   Future<Patient?> getPatientByMrn(String mrn) async {
-    try {
-      final query = await _firestore
-          .collection('patients')
-          .where('mrn', isEqualTo: mrn)
-          .limit(1)
-          .get();
+    final query = await _firestore
+        .collection('patients')
+        .where('mrn', isEqualTo: mrn)
+        .limit(1)
+        .get();
 
-      if (query.docs.isEmpty) return null;
+    if (query.docs.isEmpty) return null;
 
-      final doc = query.docs.first;
-      return Patient.fromJson({'id': doc.id, ...doc.data()});
-    } catch (_) {
-      return null;
-    }
+    final doc = query.docs.first;
+    return Patient.fromJson({'id': doc.id, ...doc.data()});
   }
 
+  /// Deletes the patient and all their wound assessments. The patient record
+  /// goes in the first batch: it is the permission-gated step
+  /// (supervisor/admin only), so if it's rejected nothing is deleted.
+  /// Wound images are removed from Storage by the
+  /// deleteWoundImageOnAssessmentDelete Cloud Function.
   Future<void> deletePatientAndAssessments(String patientId) async {
-    // Delete the patient record first — this is the permission-gated step
-    // (supervisor/admin only). If it's rejected, nothing below runs, so a
-    // caller without permission never ends up in a state where the
-    // assessments were wiped but the patient record survived.
-    await _firestore.collection('patients').doc(patientId).delete();
-
-    // Delete related wound assessments
     final assessmentsSnapshot = await _firestore
         .collection('woundAssessments')
         .where('patientId', isEqualTo: patientId)
         .get();
 
-    for (final doc in assessmentsSnapshot.docs) {
-      await _firestore.collection('woundAssessments').doc(doc.id).delete();
+    final refs = [
+      _firestore.collection('patients').doc(patientId),
+      ...assessmentsSnapshot.docs.map((doc) => doc.reference),
+    ];
+    for (var i = 0; i < refs.length; i += _maxBatchWrites) {
+      final batch = _firestore.batch();
+      for (final ref in refs.skip(i).take(_maxBatchWrites)) {
+        batch.delete(ref);
+      }
+      await batch.commit();
     }
   }
 
   // Wound Assessment operations
   Future<List<WoundAssessment>> getWoundAssessments(String patientId) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection('woundAssessments')
-          .where('patientId', isEqualTo: patientId)
-          .get();
-
-      final items = querySnapshot.docs
-          .map((doc) => WoundAssessment.fromJson({'id': doc.id, ...doc.data()}))
-          .toList();
-
-      items.sort((a, b) => b.assessmentDate.compareTo(a.assessmentDate));
-      return items;
-    } catch (_) {
-      return [];
-    }
-  }
-
-  Future<WoundAssessment?> getWoundAssessment(String assessmentId) async {
-    try {
-      final doc = await _firestore
-          .collection('woundAssessments')
-          .doc(assessmentId)
-          .get();
-      if (!doc.exists) return null;
-      return WoundAssessment.fromJson({'id': doc.id, ...doc.data()!});
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> addWoundAssessment(WoundAssessment assessment) async {
-    await _firestore
+    final querySnapshot = await _firestore
         .collection('woundAssessments')
-        .doc(assessment.id)
-        .set(assessment.toJson());
+        .where('patientId', isEqualTo: patientId)
+        .get();
 
-    // Update patient's wound assessment list
-    await _firestore.collection('patients').doc(assessment.patientId).update({
-      'woundAssessmentIds': FieldValue.arrayUnion([assessment.id]),
-    });
+    final items = _parseDocs(querySnapshot.docs, WoundAssessment.fromJson);
+    items.sort((a, b) => b.assessmentDate.compareTo(a.assessmentDate));
+    return items;
   }
 
+  /// The assessment, or null if it doesn't exist.
+  Future<WoundAssessment?> getWoundAssessment(String assessmentId) async {
+    final doc = await _firestore
+        .collection('woundAssessments')
+        .doc(assessmentId)
+        .get();
+    if (!doc.exists) return null;
+    return WoundAssessment.fromJson({'id': doc.id, ...doc.data()!});
+  }
+
+  /// Saves a new assessment and adds it to the patient's list in one batch.
+  Future<void> addWoundAssessment(WoundAssessment assessment) async {
+    final batch = _firestore.batch()
+      ..set(
+        _firestore.collection('woundAssessments').doc(assessment.id),
+        assessment.toJson(),
+      )
+      ..update(_firestore.collection('patients').doc(assessment.patientId), {
+        'woundAssessmentIds': FieldValue.arrayUnion([assessment.id]),
+      });
+    await batch.commit();
+  }
+
+  /// Saves the fields the results screen edits (AI result, notes, specialist
+  /// confirmation). Correction, approval and feedback fields have their own
+  /// methods, so a save from a stale copy can never overwrite them.
   Future<void> updateWoundAssessment(WoundAssessment assessment) async {
     await _firestore
         .collection('woundAssessments')
         .doc(assessment.id)
-        .update(assessment.toJson());
+        .update({
+      'analysisResult': assessment.analysisResult?.toJson(),
+      'additionalNotes': assessment.additionalNotes,
+      'specialistConfirmed': assessment.specialistConfirmed,
+    });
   }
 
   /// Save a clinician's type correction without touching the original
@@ -191,7 +212,7 @@ class FirestoreService {
       'clinicianCorrectedType': correctedType,
       'clinicianCorrectedName': correctedName,
       'correctedBy': correctedBy,
-      'correctedAt': DateTime.now().toIso8601String(),
+      'correctedAt': FieldValue.serverTimestamp(),
       // Reset training approval whenever the label changes
       'approvedForTraining': false,
       'approvedBy': null,
@@ -223,7 +244,7 @@ class FirestoreService {
       'clinicianCorrectedType': type,
       'clinicianCorrectedName': WoundTypesDatabase.getWoundTypeName(type),
       'correctedBy': correctedBy,
-      'correctedAt': DateTime.now().toIso8601String(),
+      'correctedAt': FieldValue.serverTimestamp(),
       // A new label needs a fresh lecturer decision
       'approvedForTraining': false,
       'approvedBy': null,
@@ -244,7 +265,7 @@ class FirestoreService {
     final data = <String, dynamic>{
       'approvedForTraining': true,
       'approvedBy': approvedBy,
-      'approvedAt': DateTime.now().toIso8601String(),
+      'approvedAt': FieldValue.serverTimestamp(),
     };
 
     final hasComment = supervisorFeedback?.trim().isNotEmpty ?? false;
@@ -259,7 +280,7 @@ class FirestoreService {
     }
     if (hasComment || supervisorCorrectedType != null) {
       data['supervisorFeedbackBy'] = approvedBy;
-      data['supervisorFeedbackAt'] = DateTime.now().toIso8601String();
+      data['supervisorFeedbackAt'] = FieldValue.serverTimestamp();
       data['hasSupervisorFeedback'] = true;
     }
 
@@ -269,21 +290,15 @@ class FirestoreService {
   /// Fetch all assessments that have been clinician-verified but not yet
   /// approved or rejected for training.  Used by the Lecturer approval queue.
   Future<List<WoundAssessment>> getPendingApprovalAssessments() async {
-    try {
-      final snapshot = await _firestore
-          .collection('woundAssessments')
-          .where('clinicianCorrectedType', isNull: false)
-          .where('approvedForTraining', isEqualTo: false)
-          .get();
+    final snapshot = await _firestore
+        .collection('woundAssessments')
+        .where('clinicianCorrectedType', isNull: false)
+        .where('approvedForTraining', isEqualTo: false)
+        .get();
 
-      return snapshot.docs
-          .map((doc) =>
-              WoundAssessment.fromJson({'id': doc.id, ...doc.data()}))
-          .where((a) => !a.rejectedForTraining)
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    return _parseDocs(snapshot.docs, WoundAssessment.fromJson)
+        .where((a) => !a.rejectedForTraining)
+        .toList();
   }
 
   /// Mark an image as unsuitable for training (e.g. poor quality, wrong angle).
@@ -299,10 +314,10 @@ class FirestoreService {
     final data = <String, dynamic>{
       'rejectedForTraining': true,
       'rejectedBy': rejectedBy,
-      'rejectedAt': DateTime.now().toIso8601String(),
+      'rejectedAt': FieldValue.serverTimestamp(),
       'supervisorFeedback': supervisorFeedback.trim(),
       'supervisorFeedbackBy': rejectedBy,
-      'supervisorFeedbackAt': DateTime.now().toIso8601String(),
+      'supervisorFeedbackAt': FieldValue.serverTimestamp(),
       'hasSupervisorFeedback': true,
     };
 
@@ -320,37 +335,35 @@ class FirestoreService {
   /// and the nurse feedback list screen.
   Future<List<WoundAssessment>> getAssessmentsNeedingAttention(
       String staffId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('woundAssessments')
-          .where('correctedBy', isEqualTo: staffId)
-          .where('hasSupervisorFeedback', isEqualTo: true)
-          .get();
+    final snapshot = await _firestore
+        .collection('woundAssessments')
+        .where('correctedBy', isEqualTo: staffId)
+        .where('hasSupervisorFeedback', isEqualTo: true)
+        .get();
 
-      return snapshot.docs
-          .map((doc) =>
-              WoundAssessment.fromJson({'id': doc.id, ...doc.data()}))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    return _parseDocs(snapshot.docs, WoundAssessment.fromJson);
   }
 
+  /// Deletes the assessment and removes it from the patient's list in one
+  /// batch. Its image is removed by a Cloud Function.
   Future<void> deleteWoundAssessment({
     required String assessmentId,
     required String patientId,
   }) async {
-    await _firestore.collection('woundAssessments').doc(assessmentId).delete();
-    await _firestore.collection('patients').doc(patientId).update({
-      'woundAssessmentIds': FieldValue.arrayRemove([assessmentId]),
-    });
+    final batch = _firestore.batch()
+      ..delete(_firestore.collection('woundAssessments').doc(assessmentId))
+      ..update(_firestore.collection('patients').doc(patientId), {
+        'woundAssessmentIds': FieldValue.arrayRemove([assessmentId]),
+      });
+    await batch.commit();
   }
 
   /// Upload a wound image to Firebase Storage and return its download URL.
   /// Images are stored under wound_images/{uid}/{fileName} so that
   /// Storage security rules can be scoped per user if needed.
   Future<String> uploadWoundImage(File imageFile, String fileName) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('Not signed in.');
     final ref = _storage
         .ref()
         .child('wound_images')

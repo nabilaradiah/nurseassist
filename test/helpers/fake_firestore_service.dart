@@ -72,8 +72,20 @@ class FakeFirestoreService implements FirestoreService {
   Future<void> addPatient(Patient patient) async => addedPatients.add(patient);
 
   @override
-  Future<void> updatePatient(Patient patient) async =>
-      updatedPatients.add(patient);
+  Future<void> updatePatient(Patient patient, {VitalReading? newReading}) async {
+    updatedPatients.add(patient);
+    if (newReading != null) await addVitalReading(patient.id, newReading);
+  }
+
+  @override
+  Future<void> recordAssessmentVitals({
+    required String patientId,
+    required String assessmentId,
+    required VitalReading reading,
+  }) async {
+    await addVitalReading(patientId, reading);
+    await saveAssessmentVitals(assessmentId, reading);
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>

@@ -181,10 +181,7 @@ class _AddEditPatientScreenState extends State<AddEditPatientScreen>
       if (widget.patient == null) {
         await _firestoreService.addPatient(patient);
       } else {
-        await _firestoreService.updatePatient(patient);
-        if (newReading != null) {
-          await _firestoreService.addVitalReading(id, newReading);
-        }
+        await _firestoreService.updatePatient(patient, newReading: newReading);
       }
 
       if (!mounted) return;

@@ -99,8 +99,11 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
     final reading = await showRecordVitalsSheet(context);
     if (reading == null) return;
     try {
-      await _firestoreService.addVitalReading(widget.patient.id, reading);
-      await _firestoreService.saveAssessmentVitals(_assessment.id, reading);
+      await _firestoreService.recordAssessmentVitals(
+        patientId: widget.patient.id,
+        assessmentId: _assessment.id,
+        reading: reading,
+      );
       if (!mounted) return;
       setState(() {
         _vitals = [..._vitals, reading];
@@ -2282,7 +2285,9 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
                 await _firestoreService.saveTimeAssessment(
                   assessmentId: _assessment.id,
                   timeAssessment: ta,
-                  correctedBy: ta.assessedBy ?? 'unknown',
+                  correctedBy: staff?.staffId ??
+                      (throw Exception(
+                    'Your staff profile is not loaded. Please log in again.')),
                 );
                 if (!mounted) return;
                 setState(() {

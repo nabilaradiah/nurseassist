@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/patient_avatar.dart';
 import '../widgets/primary_fab.dart';
@@ -35,6 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   int _pendingApprovals = 0;
   int _needsAttentionCount = 0;
   bool _isLoading = true;
+  Object? _loadError;
 
   @override
   void initState() {
@@ -129,8 +131,20 @@ class _DashboardScreenState extends State<DashboardScreen>
       });
     } catch (e) {
       debugPrint('❌ Error loading data: $e');
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadError = e;
+      });
     }
+  }
+
+  void _retryLoad() {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    _loadData();
   }
 
   Future<void> _handleLogout() async {
@@ -211,7 +225,16 @@ class _DashboardScreenState extends State<DashboardScreen>
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                   sliver: SliverList(
-                    delegate: SliverChildListDelegate([
+                    delegate: SliverChildListDelegate(_loadError != null
+                        ? [
+                            const SizedBox(height: 24),
+                            LoadErrorView(
+                              what: 'your patients',
+                              error: _loadError!,
+                              onRetry: _retryLoad,
+                            ),
+                          ]
+                        : [
                       const SizedBox(height: 24),
 
                       // Stats row

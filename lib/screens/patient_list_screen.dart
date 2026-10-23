@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/patient_avatar.dart';
 import '../widgets/primary_fab.dart';
 import '../models/patient.dart';
@@ -26,6 +27,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
   List<Patient> _allPatients = [];
   List<Patient> _filteredPatients = [];
   bool _isLoading = true;
+  Object? _loadError;
 
   @override
   void initState() {
@@ -58,8 +60,20 @@ class _PatientListScreenState extends State<PatientListScreen> {
       });
     } catch (e) {
       print('❌ Error loading patients: $e');
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadError = e;
+      });
     }
+  }
+
+  void _retryLoad() {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    _loadPatients();
   }
 
   void _filterPatients(String query) {
@@ -252,6 +266,12 @@ class _PatientListScreenState extends State<PatientListScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
+                : _loadError != null
+                ? LoadErrorView(
+                    what: 'patients',
+                    error: _loadError!,
+                    onRetry: _retryLoad,
+                  )
                 : _filteredPatients.isEmpty
                     ? Center(
                         child: Container(

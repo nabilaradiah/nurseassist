@@ -1,4 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
 import 'vital_reading.dart';
+
+/// Reads a date stored either as an ISO-8601 string (older records and
+/// client-written fields) or as a Firestore server timestamp.
+DateTime? _parseDate(Object? value) {
+  if (value == null) return null;
+  if (value is Timestamp) return value.toDate();
+  if (value is DateTime) return value;
+  return DateTime.parse(value as String);
+}
 
 /// Data models for wound assessments.
 ///
@@ -223,7 +233,7 @@ class WoundAssessment {
       id: json['id'],
       patientId: json['patientId'],
       imageUrl: json['imageUrl'],
-      assessmentDate: DateTime.parse(json['assessmentDate']),
+      assessmentDate: _parseDate(json['assessmentDate'])!,
       analysisResult: json['analysisResult'] != null
           ? WoundAnalysisResult.fromJson(json['analysisResult'])
           : null,
@@ -238,30 +248,22 @@ class WoundAssessment {
       clinicianCorrectedType: json['clinicianCorrectedType'],
       clinicianCorrectedName: json['clinicianCorrectedName'],
       correctedBy: json['correctedBy'],
-      correctedAt: json['correctedAt'] != null
-          ? DateTime.parse(json['correctedAt'])
-          : null,
+      correctedAt: _parseDate(json['correctedAt']),
       // Training approval
       approvedForTraining: json['approvedForTraining'] ?? false,
       approvedBy: json['approvedBy'],
-      approvedAt: json['approvedAt'] != null
-          ? DateTime.parse(json['approvedAt'])
-          : null,
+      approvedAt: _parseDate(json['approvedAt']),
       // Training rejection
       rejectedForTraining: json['rejectedForTraining'] ?? false,
       rejectedBy: json['rejectedBy'],
-      rejectedAt: json['rejectedAt'] != null
-          ? DateTime.parse(json['rejectedAt'])
-          : null,
+      rejectedAt: _parseDate(json['rejectedAt']),
       // Supervisor type reassignment
       supervisorCorrectedType: json['supervisorCorrectedType'],
       supervisorCorrectedName: json['supervisorCorrectedName'],
       // Supervisor feedback
       supervisorFeedback: json['supervisorFeedback'],
       supervisorFeedbackBy: json['supervisorFeedbackBy'],
-      supervisorFeedbackAt: json['supervisorFeedbackAt'] != null
-          ? DateTime.parse(json['supervisorFeedbackAt'])
-          : null,
+      supervisorFeedbackAt: _parseDate(json['supervisorFeedbackAt']),
       hasSupervisorFeedback: json['hasSupervisorFeedback'] ?? false,
       // Nurse TIME(S) assessment — absent on legacy documents
       timeAssessment: json['timeAssessment'] != null

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/load_error_view.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../models/wound_assessment.dart';
@@ -25,6 +26,7 @@ class _LecturerApprovalScreenState extends State<LecturerApprovalScreen> {
 
   List<WoundAssessment> _assessments = [];
   bool _isLoading = true;
+  Object? _loadError;
   final Set<String> _approving = {};
   final Set<String> _rejecting = {};
 
@@ -53,7 +55,10 @@ class _LecturerApprovalScreenState extends State<LecturerApprovalScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
     try {
       final list = await _firestoreService.getPendingApprovalAssessments();
       // Nurse-vs-AI disagreements need a lecturer decision, so list them first
@@ -70,15 +75,22 @@ class _LecturerApprovalScreenState extends State<LecturerApprovalScreen> {
           _isLoading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _loadError = e;
+        });
+      }
     }
   }
 
   Future<void> _approve(WoundAssessment assessment) async {
     setState(() => _approving.add(assessment.id));
     try {
-      final staffId = AuthService().loggedInStaff?.staffId ?? 'unknown';
+      final staffId = AuthService().loggedInStaff?.staffId ??
+                (throw Exception(
+                    'Your staff profile is not loaded. Please log in again.'));
       final feedback = _feedbackControllers[assessment.id]?.text.trim();
       await _firestoreService.approveForTraining(
         assessmentId: assessment.id,
@@ -146,7 +158,9 @@ class _LecturerApprovalScreenState extends State<LecturerApprovalScreen> {
 
     setState(() => _rejecting.add(assessment.id));
     try {
-      final staffId = AuthService().loggedInStaff?.staffId ?? 'unknown';
+      final staffId = AuthService().loggedInStaff?.staffId ??
+                (throw Exception(
+                    'Your staff profile is not loaded. Please log in again.'));
       await _firestoreService.rejectFromTraining(
         assessmentId: assessment.id,
         rejectedBy: staffId,
@@ -238,7 +252,13 @@ class _LecturerApprovalScreenState extends State<LecturerApprovalScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _assessments.isEmpty
+                : _loadError != null
+                    ? LoadErrorView(
+                        what: 'the approval queue',
+                        error: _loadError!,
+                        onRetry: _load,
+                      )
+                    : _assessments.isEmpty
                     ? _buildEmptyState()
                     : RefreshIndicator(
                         onRefresh: _load,

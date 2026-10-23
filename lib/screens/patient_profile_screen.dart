@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/patient_avatar.dart';
 import '../widgets/primary_fab.dart';
 import '../widgets/vital_signs.dart';
@@ -35,6 +36,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       widget.firestoreService ?? FirestoreService();
   List<WoundAssessment> _assessments = [];
   bool _isLoading = true;
+  Object? _loadError;
   bool _isDeleting = false;
   late Patient _patient;
 
@@ -56,8 +58,20 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       });
     } catch (e) {
       print('Error loading assessments: $e');
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadError = e;
+      });
     }
+  }
+
+  void _retryLoad() {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    _loadAssessments();
   }
 
   Future<void> _confirmDeleteAssessment(WoundAssessment assessment) async {
@@ -230,13 +244,23 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               );
 
               if (updated == true) {
-                final refreshed = await _firestoreService.getPatient(
-                  _patient.id,
-                );
-                if (refreshed != null && mounted) {
-                  setState(() {
-                    _patient = refreshed;
-                  });
+                try {
+                  final refreshed = await _firestoreService.getPatient(
+                    _patient.id,
+                  );
+                  if (refreshed != null && mounted) {
+                    setState(() {
+                      _patient = refreshed;
+                    });
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    showErrorSnack(
+                      this.context,
+                      'Saved, but could not reload the patient: '
+                      '${describeLoadError(e)}',
+                    );
+                  }
                 }
               }
             },
@@ -310,6 +334,12 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                       padding: EdgeInsets.all(32.0),
                       child: CircularProgressIndicator(),
                     ),
+                  )
+                : _loadError != null
+                ? LoadErrorView(
+                    what: 'wound assessments',
+                    error: _loadError!,
+                    onRetry: _retryLoad,
                   )
                 : _assessments.isEmpty
                 ? Container(

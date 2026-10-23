@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/load_error_view.dart';
 import '../models/patient.dart';
 import '../models/wound_assessment.dart';
 import '../services/auth_service.dart';
@@ -21,6 +22,7 @@ class _NurseFeedbackScreenState extends State<NurseFeedbackScreen> {
 
   List<_FeedbackItem> _items = [];
   bool _isLoading = true;
+  Object? _loadError;
 
   @override
   void initState() {
@@ -29,7 +31,10 @@ class _NurseFeedbackScreenState extends State<NurseFeedbackScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
     try {
       final staffId = AuthService().loggedInStaff?.staffId ?? '';
       final assessments =
@@ -55,8 +60,13 @@ class _NurseFeedbackScreenState extends State<NurseFeedbackScreen> {
           _isLoading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _loadError = e;
+        });
+      }
     }
   }
 
@@ -122,7 +132,13 @@ class _NurseFeedbackScreenState extends State<NurseFeedbackScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _items.isEmpty
+                : _loadError != null
+                    ? LoadErrorView(
+                        what: 'feedback',
+                        error: _loadError!,
+                        onRetry: _load,
+                      )
+                    : _items.isEmpty
                     ? _buildEmptyState()
                     : RefreshIndicator(
                         onRefresh: _load,

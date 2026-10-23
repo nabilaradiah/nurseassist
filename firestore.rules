@@ -40,6 +40,30 @@ service cloud.firestore {
       return request.resource.data.get(field, null) == resource.data.get(field, null);
     }
 
+    // The caller's Staff ID, from roles/{uid} (written at registration).
+    function myStaffId() {
+      return get(rolePath()).data.get('staffId', null);
+    }
+
+    // An audit pair (who + when, e.g. approvedBy/approvedAt) is either left
+    // as it was, cleared together, or written by the caller themself with the
+    // server's clock (FieldValue.serverTimestamp()) — so nobody can sign a
+    // change as someone else or back-date it.
+    function auditStamp(byField, atField) {
+      return (unchanged(byField) && unchanged(atField))
+          || (request.resource.data.get(byField, null) == null
+              && request.resource.data.get(atField, null) == null)
+          || (request.resource.data.get(byField, null) == myStaffId()
+              && request.resource.data.get(atField, null) == request.time);
+    }
+
+    function auditStampsValid() {
+      return auditStamp('correctedBy', 'correctedAt')
+          && auditStamp('approvedBy', 'approvedAt')
+          && auditStamp('rejectedBy', 'rejectedAt')
+          && auditStamp('supervisorFeedbackBy', 'supervisorFeedbackAt');
+    }
+
     // ── roles/ ────────────────────────────────────────────────────────────────
     // Written at registration (nurse default) and by admin for promotions.
     // Each user can only read their own role document.
@@ -95,8 +119,9 @@ service cloud.firestore {
 
     // ── woundAssessments/ ─────────────────────────────────────────────────────
     // Verified staff may read and create; a new assessment must start
-    // unreviewed (not approved, not rejected, no supervisor feedback).
-    // Update is split:
+    // unreviewed (no correction, approval, rejection or supervisor feedback).
+    // Every update must keep the audit fields honest (auditStampsValid).
+    // Beyond that, update is split:
     //   - supervisor/admin can update any field
     //   - nurse can update clinical fields but can't touch any training
     //     approval/rejection or supervisor field
@@ -104,6 +129,7 @@ service cloud.firestore {
     match /woundAssessments/{assessmentId} {
       allow read:   if isStaff();
       allow create: if isStaff()
+                       && request.resource.data.get('correctedBy', null) == null
                        && request.resource.data.get('approvedForTraining', false) == false
                        && request.resource.data.get('approvedBy', null) == null
                        && request.resource.data.get('rejectedForTraining', false) == false
@@ -111,10 +137,10 @@ service cloud.firestore {
                        && request.resource.data.get('supervisorCorrectedType', null) == null
                        && request.resource.data.get('supervisorFeedback', null) == null
                        && request.resource.data.get('hasSupervisorFeedback', false) == false;
-      allow update: if isSupervisorOrAdmin()
+      allow update: if isStaff() && auditStampsValid() && (
+                      isSupervisorOrAdmin()
                     || (
-                      isStaff()
-                      && unchanged('approvedForTraining')
+                      unchanged('approvedForTraining')
                       && unchanged('approvedBy')
                       && unchanged('approvedAt')
                       && unchanged('rejectedForTraining')
@@ -127,7 +153,7 @@ service cloud.firestore {
                       && unchanged('supervisorFeedbackAt')
                       && unchanged('hasSupervisorFeedback')
                       && unchanged('trainingImagePath')
-                    );
+                    ));
       allow delete: if isSupervisorOrAdmin();
     }
   }
