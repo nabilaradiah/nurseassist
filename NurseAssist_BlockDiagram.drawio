@@ -1,0 +1,151 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="x7JwLOCsIkiICWoD2QQG" name="Page-1">
+    <mxGraphModel dx="1433" dy="718" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=20;fontStyle=1;" value="NurseAssist — Block Diagram" vertex="1">
+          <mxGeometry height="35" width="500" x="200" y="15" as="geometry" />
+        </mxCell>
+        <mxCell id="r1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#999;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="100" width="803" x="40" y="65" as="geometry" />
+        </mxCell>
+        <mxCell id="r1l" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#999;align=left;" value="Users" vertex="1">
+          <mxGeometry height="20" width="60" x="48" y="68" as="geometry" />
+        </mxCell>
+        <mxCell id="u1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" value="👩‍⚕️  Nurse" vertex="1">
+          <mxGeometry height="60" width="240" x="140" y="85" as="geometry" />
+        </mxCell>
+        <mxCell id="u2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" value="🎓  Supervisor / Admin" vertex="1">
+          <mxGeometry height="60" width="240" x="520" y="85" as="geometry" />
+        </mxCell>
+        <mxCell id="a12" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555;strokeWidth=2.5;endArrow=block;endFill=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="165" as="sourcePoint" />
+            <mxPoint x="450" y="195" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="140" width="820" x="40" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="r2l" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;fontColor=#6c8ebf;align=left;" value="② Presentation Layer — Flutter Screens" vertex="1">
+          <mxGeometry height="22" width="400" x="48" y="198" as="geometry" />
+        </mxCell>
+        <mxCell id="sc1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" value="🔐 Auth&#xa;Login · Register" vertex="1">
+          <mxGeometry height="90" width="145" x="58" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="sc2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" value="🏠 Dashboard&#xa;Stats · Overview" vertex="1">
+          <mxGeometry height="90" width="145" x="218" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="sc3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" value="👤 Patient Mgmt&#xa;Add · Edit · Profile" vertex="1">
+          <mxGeometry height="90" width="145" x="378" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="sc4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" value="📷 Wound Assessment&#xa;Capture · Results" vertex="1">
+          <mxGeometry height="90" width="145" x="538" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="sc5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="✅ Approval Queue&#xa;Approve · Reject" vertex="1">
+          <mxGeometry height="90" width="145" x="698" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="a23" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555;strokeWidth=2.5;endArrow=block;endFill=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="335" as="sourcePoint" />
+            <mxPoint x="450" y="365" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="140" width="820" x="40" y="365" as="geometry" />
+        </mxCell>
+        <mxCell id="r3l" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;fontColor=#82b366;align=left;" value="③ Service Layer" vertex="1">
+          <mxGeometry height="22" width="200" x="48" y="368" as="geometry" />
+        </mxCell>
+        <mxCell id="sv1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="AuthService&#xa;Sign-in · Register" vertex="1">
+          <mxGeometry height="90" width="175" x="58" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="sv2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="FirestoreService&#xa;Patient &amp; Assessment CRUD" vertex="1">
+          <mxGeometry height="90" width="185" x="248" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="sv3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="WoundAnalysisService&#xa;Routes to TFLite / Cloud" vertex="1">
+          <mxGeometry height="90" width="185" x="448" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="sv4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="SkinDetectionService&#xa;MediaPipe skin gate" vertex="1">
+          <mxGeometry height="90" width="195" x="648" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="a34" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555;strokeWidth=2.5;endArrow=block;endFill=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="505" as="sourcePoint" />
+            <mxPoint x="450" y="535" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="140" width="820" x="40" y="535" as="geometry" />
+        </mxCell>
+        <mxCell id="r4l" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;fontColor=#9673a6;align=left;" value="④ On-Device ML  (assets/models/)" vertex="1">
+          <mxGeometry height="22" width="340" x="48" y="538" as="geometry" />
+        </mxCell>
+        <mxCell id="ml1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" value="MediaPipe Selfie Segmenter&#xa;Skin presence gate — 4% threshold" vertex="1">
+          <mxGeometry height="90" width="255" x="58" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="ml2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" value="EfficientNetB0 TFLite&#xa;8-class wound classifier&#xa;Input [1,224,224,3] → Output [1,8]" vertex="1">
+          <mxGeometry height="90" width="255" x="328" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="ml3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="WoundTypesDatabase&#xa;Type 1–8 care plan lookup&#xa;Specialist flag: Types 3, 4, 6" vertex="1">
+          <mxGeometry height="90" width="245" x="598" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="a45" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555;strokeWidth=2.5;endArrow=block;endFill=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="675" as="sourcePoint" />
+            <mxPoint x="450" y="705" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="140" width="820" x="40" y="705" as="geometry" />
+        </mxCell>
+        <mxCell id="r5l" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;fontColor=#b85450;align=left;" value="⑤ Firebase Backend  (Google Cloud)" vertex="1">
+          <mxGeometry height="22" width="350" x="48" y="708" as="geometry" />
+        </mxCell>
+        <mxCell id="fb1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" value="🔑 Firebase Auth&#xa;Email + password&#xa;Verification required" vertex="1">
+          <mxGeometry height="90" width="190" x="58" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="fb2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" value="🗄 Cloud Firestore&#xa;/staff  /roles  /patients&#xa;/woundAssessments" vertex="1">
+          <mxGeometry height="90" width="220" x="263" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="fb3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" value="🖼 Firebase Storage&#xa;wound_images/{uid}/{file}&#xa;Compressed JPEG" vertex="1">
+          <mxGeometry height="90" width="200" x="498" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="fb4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" value="💻 Google Colab&#xa;ML Retraining&#xa;→ new .tflite deployed" vertex="1">
+          <mxGeometry height="90" width="130" x="713" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="b1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#999;fontColor=#fff;strokeColor=#999;fontSize=13;fontStyle=1;" value="①" vertex="1">
+          <mxGeometry height="34" width="34" x="48" y="98" as="geometry" />
+        </mxCell>
+        <mxCell id="b2" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#6c8ebf;fontColor=#fff;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" value="②" vertex="1">
+          <mxGeometry height="34" width="34" x="48" y="268" as="geometry" />
+        </mxCell>
+        <mxCell id="b3" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#82b366;fontColor=#fff;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="③" vertex="1">
+          <mxGeometry height="34" width="34" x="48" y="438" as="geometry" />
+        </mxCell>
+        <mxCell id="b4" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9673a6;fontColor=#fff;strokeColor=#9673a6;fontSize=13;fontStyle=1;" value="④" vertex="1">
+          <mxGeometry height="34" width="34" x="48" y="608" as="geometry" />
+        </mxCell>
+        <mxCell id="b5" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#b85450;fontColor=#fff;strokeColor=#b85450;fontSize=13;fontStyle=1;" value="⑤" vertex="1">
+          <mxGeometry height="34" width="34" x="48" y="778" as="geometry" />
+        </mxCell>
+        <mxCell id="loop" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=10;fontStyle=2;" value="🔄 ML Retraining Loop:&#xa;Nurse corrects → Supervisor approves&#xa;→ Firestore export → Colab retrains → new .tflite" vertex="1">
+          <mxGeometry height="50" width="820" x="40" y="870" as="geometry" />
+        </mxCell>
+        <mxCell id="aloop" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;fontColor=#9673a6;fontSize=10;endArrow=open;endFill=0;" value="deploy">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="780" />
+              <mxPoint x="890" y="780" />
+              <mxPoint x="890" y="610" />
+              <mxPoint x="860" y="610" />
+            </Array>
+            <mxPoint x="840" y="780" as="sourcePoint" />
+            <mxPoint x="860" y="610" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

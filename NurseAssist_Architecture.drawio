@@ -1,0 +1,368 @@
+<mxGraphModel dx="1800" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="2400" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ═══════════════════════ TITLE ═══════════════════════ -->
+    <mxCell id="2" value="NurseAssist — System Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#1a1a1a;" vertex="1" parent="1">
+      <mxGeometry x="700" y="20" width="700" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="3" value="Flutter (Android) · Firebase · TFLite · MediaPipe · Google Colab" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#555;" vertex="1" parent="1">
+      <mxGeometry x="700" y="55" width="700" height="25" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════ PRESENTATION LAYER BOX ═══════════════════════ -->
+    <mxCell id="10" value="Presentation Layer — Flutter Screens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+      <mxGeometry x="40" y="90" width="1760" height="230" as="geometry" />
+    </mxCell>
+
+    <!-- Auth Group -->
+    <mxCell id="11" value="Auth" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bcd4f0;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="60" y="120" width="200" height="185" as="geometry" />
+    </mxCell>
+    <mxCell id="12" value="SplashScreen&#xa;(entry point, Firebase init check)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="70" y="148" width="180" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="13" value="LoginScreen&#xa;(staffId + password login)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="70" y="198" width="180" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="14" value="UserRegistrationScreen&#xa;(new nurse account)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="70" y="248" width="180" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Core Group -->
+    <mxCell id="15" value="Core" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bcd4f0;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="275" y="120" width="200" height="140" as="geometry" />
+    </mxCell>
+    <mxCell id="16" value="DashboardScreen&#xa;(stats + patient list preview)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="285" y="148" width="180" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="17" value="PatientListScreen&#xa;(full patient list)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="285" y="198" width="180" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Patient Management Group -->
+    <mxCell id="18" value="Patient Management" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bcd4f0;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="490" y="120" width="210" height="185" as="geometry" />
+    </mxCell>
+    <mxCell id="19" value="AddPatientLookupScreen&#xa;(MRN lookup before add)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="500" y="148" width="190" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="20" value="AddEditPatientScreen&#xa;(create / edit patient record)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="500" y="198" width="190" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="21" value="PatientProfileScreen&#xa;(detail + assessment history)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="500" y="248" width="190" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Wound Assessment Group -->
+    <mxCell id="22" value="Wound Assessment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bcd4f0;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="715" y="120" width="210" height="140" as="geometry" />
+    </mxCell>
+    <mxCell id="23" value="CaptureWoundScreen&#xa;(camera / gallery + privacy check)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="725" y="148" width="190" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="24" value="AnalysisResultsScreen&#xa;(result + clinician correction)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="725" y="198" width="190" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Admin Group -->
+    <mxCell id="25" value="Supervisor / Admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bcd4f0;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="940" y="120" width="215" height="140" as="geometry" />
+    </mxCell>
+    <mxCell id="26" value="LecturerApprovalScreen&#xa;(approve / reject for ML training)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="950" y="148" width="195" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="27" value="FirebaseNotConfiguredScreen&#xa;(offline fallback)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="950" y="198" width="195" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Shared Widgets -->
+    <mxCell id="28" value="Shared Widgets" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bcd4f0;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="1170" y="120" width="190" height="185" as="geometry" />
+    </mxCell>
+    <mxCell id="29" value="PatientAvatar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="1180" y="148" width="170" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="290" value="BrandLogo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="1180" y="193" width="170" height="35" as="geometry" />
+    </mxCell>
+    <mxCell id="291" value="PrimaryFAB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="1180" y="238" width="170" height="35" as="geometry" />
+    </mxCell>
+
+    <!-- State note -->
+    <mxCell id="292" value="⚙ State: setState() — no external state management library" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontStyle=2;fontColor=#444;" vertex="1" parent="1">
+      <mxGeometry x="1380" y="155" width="380" height="25" as="geometry" />
+    </mxCell>
+    <mxCell id="293" value="⚙ Routing: direct Navigator.push() between screens" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontStyle=2;fontColor=#444;" vertex="1" parent="1">
+      <mxGeometry x="1380" y="180" width="380" height="25" as="geometry" />
+    </mxCell>
+    <mxCell id="294" value="⚙ Auth gate: AuthService.authStateChanges stream&#xa;    → DashboardScreen (logged in) or LoginScreen" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontStyle=2;fontColor=#444;" vertex="1" parent="1">
+      <mxGeometry x="1380" y="205" width="380" height="35" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════ SERVICE LAYER BOX ═══════════════════════ -->
+    <mxCell id="30" value="Service Layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+      <mxGeometry x="40" y="340" width="1760" height="160" as="geometry" />
+    </mxCell>
+
+    <mxCell id="31" value="AuthService (singleton)&#xa;────────────────────&#xa;signInWithStaffId(staffId, pw)&#xa;  → Firestore email lookup&#xa;  → Firebase Auth sign-in&#xa;  → email verification check&#xa;registerStaff(...)&#xa;  → check duplicate staffId&#xa;  → createUserWithEmailAndPassword&#xa;  → save /staff + /roles/{uid}&#xa;  → sendEmailVerification&#xa;sendPasswordReset()&#xa;signOut() / getCurrentStaff()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="55" y="368" width="230" height="120" as="geometry" />
+    </mxCell>
+
+    <mxCell id="32" value="FirestoreService&#xa;────────────────────&#xa;getPatients() / addPatient()&#xa;updatePatient() / deletePatientAndAssessments()&#xa;getPatientByMrn()&#xa;getWoundAssessments(patientId)&#xa;addWoundAssessment()  [+ arrayUnion on patient]&#xa;updateWoundAssessment()&#xa;saveClinicianCorrection()  [preserves original AI]&#xa;approveForTraining() / rejectFromTraining()&#xa;getPendingApprovalAssessments()&#xa;uploadWoundImage()  → Firebase Storage URL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="295" y="368" width="275" height="120" as="geometry" />
+    </mxCell>
+
+    <mxCell id="33" value="WoundAnalysisService&#xa;────────────────────&#xa;analyzeWound(imageFile)&#xa;  → routes by AIConfig.analysisMethod:&#xa;  'tflite'  → _analyzeWithTFLite()&#xa;  'cloud'   → _analyzeWithCloudAPI()&#xa;  'enhanced_mock' → _analyzeWithEnhancedRules()&#xa;_loadModel()  [cached Interpreter]&#xa;requiresSpecialistConfirmation(typeId)&#xa;  → flags Type_3, Type_4, Type_6&#xa;Throws NoWoundDetectedException" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="580" y="368" width="260" height="120" as="geometry" />
+    </mxCell>
+
+    <mxCell id="34" value="SkinDetectionService&#xa;────────────────────&#xa;containsSkin(imageFile): bool&#xa;  → SelfieSegmenter(SegmenterMode.single)&#xa;  → InputImage.fromFilePath()&#xa;  → processImage() → SegmentationMask&#xa;  → count pixels with confidence &gt; 0.5&#xa;  → ratio &lt; 0.04 → reject (no skin)&#xa;  → error → allow through (permissive)&#xa;  → segmenter.close() in finally" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="850" y="368" width="255" height="120" as="geometry" />
+    </mxCell>
+
+    <mxCell id="35" value="AIConfig (constants)&#xa;────────────────────&#xa;analysisMethod = 'tflite'&#xa;skinDetectionEnabled = true&#xa;skinDetectionMinRatio = 0.04&#xa;noWoundDetectionEnabled = true&#xa;noWoundConfidenceThreshold = 0.35&#xa;tfliteInputHeight/Width = 224&#xa;tfliteNumClasses = 8&#xa;Roboflow keys from .env" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="1115" y="368" width="235" height="120" as="geometry" />
+    </mxCell>
+
+    <mxCell id="36" value="LocalStorageService&#xa;────────────────────&#xa;Offline cache&#xa;(SQLite / shared prefs)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="1360" y="368" width="190" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════ MODEL LAYER BOX ═══════════════════════ -->
+    <mxCell id="40" value="Model Layer — Dart Data Classes (immutable, toJson / fromJson)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+      <mxGeometry x="40" y="520" width="1760" height="130" as="geometry" />
+    </mxCell>
+
+    <mxCell id="41" value="Staff&#xa;──────&#xa;id (Firestore doc id)&#xa;staffId (e.g. '22167')&#xa;name, department&#xa;email (real email)&#xa;role: nurse | supervisor | admin&#xa;isLecturer, isAdmin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=3;" vertex="1" parent="1">
+      <mxGeometry x="55" y="545" width="205" height="95" as="geometry" />
+    </mxCell>
+
+    <mxCell id="42" value="Patient&#xa;──────&#xa;id, mrn, name, age&#xa;gender, contact&#xa;registeredDate, staffIdAssignedTo&#xa;woundAssessmentIds[ ]&#xa;phone, addressRoom, allergies&#xa;medications, chronicDiseases&#xa;emergencyContact fields" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=3;" vertex="1" parent="1">
+      <mxGeometry x="270" y="545" width="220" height="95" as="geometry" />
+    </mxCell>
+
+    <mxCell id="43" value="WoundAssessment&#xa;──────&#xa;id, patientId, imageUrl&#xa;assessmentDate&#xa;— AI Snapshot (immutable) —&#xa;modelPredictedType (1-8)&#xa;modelConfidence (0-1)&#xa;— Clinician Correction —&#xa;clinicianCorrectedType, correctedBy&#xa;— Training Approval —&#xa;approvedForTraining, approvedBy&#xa;rejectedForTraining, rejectedBy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=3;" vertex="1" parent="1">
+      <mxGeometry x="500" y="545" width="240" height="95" as="geometry" />
+    </mxCell>
+
+    <mxCell id="44" value="WoundAnalysisResult&#xa;──────&#xa;confidenceScore (0-1)&#xa;woundType (1-8), woundName&#xa;severity, estimatedSize&#xa;allClassProbabilities[8]&#xa;WoundCharacteristics:&#xa;  necroticTissue, infection&#xa;  exudateLevel, tissueClassification&#xa;WoundManagement:&#xa;  dressingMaterials[ ]&#xa;  antibioticRecommendation&#xa;  surgicalProcedures[ ]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=3;" vertex="1" parent="1">
+      <mxGeometry x="750" y="545" width="240" height="95" as="geometry" />
+    </mxCell>
+
+    <mxCell id="45" value="WoundTypesDatabase (static)&#xa;──────&#xa;Lookup for 8 wound types&#xa;getWoundTypeName(id)&#xa;getWoundTypeId(name)&#xa;getWoundTypeData(name)&#xa;requiresSpecialistConfirmation()&#xa;  → Type_3, Type_4, Type_6&#xa;normalizeClassName()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=3;" vertex="1" parent="1">
+      <mxGeometry x="1000" y="545" width="240" height="95" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════ ON-DEVICE ML BOX ═══════════════════════ -->
+    <mxCell id="50" value="On-Device ML Pipeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+      <mxGeometry x="40" y="670" width="860" height="310" as="geometry" />
+    </mxCell>
+
+    <!-- Inference flow labels -->
+    <mxCell id="500" value="Wound Analysis Inference Flow (TFLite path):" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontStyle=1;align=left;" vertex="1" parent="1">
+      <mxGeometry x="60" y="695" width="400" height="20" as="geometry" />
+    </mxCell>
+
+    <mxCell id="51" value="① SkinDetectionService.containsSkin()&#xa;─────────────────────────────────&#xa;Package: google_mlkit_selfie_segmentation ^0.10.1&#xa;SelfieSegmenter(mode: SegmenterMode.single)&#xa;InputImage.fromFilePath(imageFile.path)&#xa;Counts pixels with confidence &gt; 0.5&#xa;Ratio &lt; 4%  →  NoWoundDetectedException&#xa;               'No skin detected'&#xa;ML Kit error  →  allow through (permissive)&#xa;segmenter.close() in finally block" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=8.5;align=left;spacingLeft=6;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="55" y="718" width="385" height="135" as="geometry" />
+    </mxCell>
+
+    <mxCell id="52" value="② WoundAnalysisService._analyzeWithTFLite()&#xa;─────────────────────────────────────────&#xa;Package: tflite_flutter ^0.12.1&#xa;Model: assets/models/wound_classifier.tflite&#xa;Labels: assets/models/wound_labels.txt&#xa;Interpreter.fromAsset() — cached after first load&#xa;Input:  [1, 224, 224, 3]  float32  pixels 0-255&#xa;         (EfficientNetB0 normalises internally)&#xa;interpreter.run(input, output)&#xa;Output: [1, 8]  float32  softmax probabilities&#xa;Argmax → typeId (1-8), confidence&#xa;confidence &lt; 0.35 → NoWoundDetectedException&#xa;                     'No wound detected'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=8.5;align=left;spacingLeft=6;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="455" y="718" width="420" height="160" as="geometry" />
+    </mxCell>
+
+    <mxCell id="53" value="Fallback Methods (if TFLite fails or method switched):&#xa;  'cloud'  → Roboflow classify API (requires .env key + network)&#xa;  'enhanced_mock'  → HSV colour heuristics (redness, darkness ratios)&#xa;NoWoundDetectedException always re-thrown (never swallowed into fallback)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d9b3e8;strokeColor=#9673a6;fontSize=8.5;align=left;spacingLeft=6;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="55" y="863" width="820" height="100" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════ FIREBASE BACKEND BOX ═══════════════════════ -->
+    <mxCell id="60" value="Firebase Backend (Google Cloud)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+      <mxGeometry x="920" y="670" width="880" height="310" as="geometry" />
+    </mxCell>
+
+    <mxCell id="61" value="Firebase Authentication&#xa;──────────────────────&#xa;Email + Password provider&#xa;Email verification REQUIRED&#xa;  (unverified → sign out + error)&#xa;Password reset via email&#xa;Auth state stream → UI routing&#xa;(AuthenticationWrapper in main.dart)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="935" y="700" width="255" height="120" as="geometry" />
+    </mxCell>
+
+    <mxCell id="62" value="Cloud Firestore&#xa;──────────────────────&#xa;/staff  {staffId, name, dept, email, role, createdAt}&#xa;/roles/{uid}  {role, staffId}&#xa;  ↑ used by Security Rules for role-based access&#xa;/patients  {mrn, name, age, gender, contact,&#xa;  registeredDate, woundAssessmentIds[ ],&#xa;  staffIdAssignedTo, + optional fields}&#xa;/woundAssessments  {patientId, imageUrl,&#xa;  modelPredictedType, modelConfidence,&#xa;  clinicianCorrectedType, clinicianCorrectedName,&#xa;  correctedBy, approvedForTraining, approvedBy,&#xa;  rejectedForTraining, rejectedBy, ...}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="1200" y="700" width="375" height="160" as="geometry" />
+    </mxCell>
+
+    <mxCell id="63" value="Firebase Storage&#xa;──────────────────────&#xa;Path: wound_images/{uid}/{fileName}&#xa;Format: image/jpeg&#xa;Pre-upload compression:&#xa;  resize → max 1024px longest side&#xa;  re-encode at 85% JPEG quality&#xa;Returns download URL&#xa;  stored in WoundAssessment.imageUrl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="935" y="840" width="260" height="120" as="geometry" />
+    </mxCell>
+
+    <mxCell id="64" value="Security Rules&#xa;──────────────────────&#xa;/roles/{uid} read → check role&#xa;nurses: CRUD patients + assessments&#xa;supervisors/admins: + approve/reject&#xa;Firebase Auth UID scopes Storage path" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffdcda;strokeColor=#b85450;fontSize=8.5;align=left;spacingLeft=5;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="1205" y="875" width="255" height="90" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════ ML RETRAINING LOOP ═══════════════════════ -->
+    <mxCell id="70" value="ML Continuous Improvement Loop (Colab Retraining)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+      <mxGeometry x="40" y="1000" width="1760" height="200" as="geometry" />
+    </mxCell>
+
+    <mxCell id="71" value="① Nurse captures&#xa;wound photo&#xa;(CaptureWoundScreen)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666;fontSize=9;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="60" y="1035" width="175" height="75" as="geometry" />
+    </mxCell>
+    <mxCell id="72" value="② Model predicts&#xa;wound type (1-8)&#xa;Stored as:&#xa;modelPredictedType&#xa;modelConfidence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666;fontSize=9;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="255" y="1035" width="175" height="75" as="geometry" />
+    </mxCell>
+    <mxCell id="73" value="③ Nurse reviews result&#xa;Corrects type if wrong&#xa;Stored as:&#xa;clinicianCorrectedType&#xa;correctedBy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666;fontSize=9;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="450" y="1035" width="175" height="75" as="geometry" />
+    </mxCell>
+    <mxCell id="74" value="④ Supervisor reviews&#xa;pending queue&#xa;LecturerApprovalScreen&#xa;approveForTraining()&#xa;or rejectFromTraining()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666;fontSize=9;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="645" y="1035" width="180" height="75" as="geometry" />
+    </mxCell>
+    <mxCell id="75" value="⑤ Approved images&#xa;exported from&#xa;Firestore&#xa;(approvedForTraining=true)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666;fontSize=9;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="845" y="1035" width="175" height="75" as="geometry" />
+    </mxCell>
+    <mxCell id="76" value="⑥ Google Colab&#xa;wound_training_improved&#xa;.ipynb&#xa;EfficientNetB0&#xa;retrained (2-phase)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666;fontSize=9;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="1040" y="1035" width="180" height="75" as="geometry" />
+    </mxCell>
+    <mxCell id="77" value="⑦ New model exported&#xa;wound_classifier.tflite&#xa;wound_labels.txt&#xa;training_metadata.json&#xa;downloaded from Colab" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666;fontSize=9;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="1240" y="1035" width="185" height="75" as="geometry" />
+    </mxCell>
+    <mxCell id="78" value="⑧ .tflite deployed to&#xa;assets/models/&#xa;App updated →&#xa;improved wound&#xa;classification" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="1445" y="1035" width="175" height="75" as="geometry" />
+    </mxCell>
+
+    <!-- Pipeline arrows -->
+    <mxCell id="p1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="71" target="72" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="p2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="72" target="73" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="p3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="73" target="74" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="p4" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="74" target="75" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="p5" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="75" target="76" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="p6" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="76" target="77" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="p7" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="77" target="78" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════ CROSS-LAYER ARROWS ═══════════════════════ -->
+
+    <!-- LoginScreen → AuthService -->
+    <mxCell id="a1" value="signIn / register" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;fontColor=#6c8ebf;fontSize=8;dashed=0;" edge="1" source="13" target="31" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- DashboardScreen → AuthService (getCurrentStaff + signOut) -->
+    <mxCell id="a2" value="getCurrentStaff()&#xa;signOut()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;fontColor=#6c8ebf;fontSize=8;" edge="1" source="16" target="31" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- DashboardScreen → FirestoreService -->
+    <mxCell id="a3" value="getPatients()&#xa;getWoundAssessments()&#xa;getPendingApprovals()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;fontColor=#82b366;fontSize=8;" edge="1" source="16" target="32" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- PatientListScreen → FirestoreService -->
+    <mxCell id="a4" value="getPatients()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;fontColor=#82b366;fontSize=8;" edge="1" source="17" target="32" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- AddEditPatientScreen → FirestoreService -->
+    <mxCell id="a5" value="addPatient()&#xa;updatePatient()&#xa;getPatientByMrn()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;fontColor=#82b366;fontSize=8;" edge="1" source="20" target="32" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- PatientProfileScreen → FirestoreService -->
+    <mxCell id="a6" value="getWoundAssessments()&#xa;deletePatientAndAssessments()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;fontColor=#82b366;fontSize=8;" edge="1" source="21" target="32" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- CaptureWoundScreen → WoundAnalysisService -->
+    <mxCell id="a7" value="analyzeWound()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;fontColor=#82b366;fontSize=8;" edge="1" source="23" target="33" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- CaptureWoundScreen → FirestoreService (upload + save assessment) -->
+    <mxCell id="a8" value="uploadWoundImage()&#xa;addWoundAssessment()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;fontColor=#82b366;fontSize=8;" edge="1" source="23" target="32" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- AnalysisResultsScreen → FirestoreService (clinician correction) -->
+    <mxCell id="a9" value="saveClinicianCorrection()&#xa;updateWoundAssessment()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;fontColor=#82b366;fontSize=8;" edge="1" source="24" target="32" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- LecturerApprovalScreen → FirestoreService -->
+    <mxCell id="a10" value="getPendingApprovalAssessments()&#xa;approveForTraining()&#xa;rejectFromTraining()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;fontColor=#82b366;fontSize=8;" edge="1" source="26" target="32" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- WoundAnalysisService → SkinDetectionService -->
+    <mxCell id="a11" value="containsSkin() [gate]" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;fontColor=#9673a6;fontSize=8;" edge="1" source="33" target="34" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- WoundAnalysisService → On-Device ML (TFLite) -->
+    <mxCell id="a12" value="Interpreter.run()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;fontColor=#9673a6;fontSize=8;" edge="1" source="33" target="52" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- SkinDetectionService → MediaPipe -->
+    <mxCell id="a13" value="SelfieSegmenter&#xa;.processImage()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;fontColor=#9673a6;fontSize=8;" edge="1" source="34" target="51" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- WoundAnalysisService → WoundTypesDatabase -->
+    <mxCell id="a14" value="getWoundTypeData()&#xa;requiresSpecialistConfirmation()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;fontColor=#d6b656;fontSize=8;" edge="1" source="33" target="45" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- AuthService → Firebase Auth -->
+    <mxCell id="a15" value="signIn / register&#xa;emailVerified check&#xa;sendPasswordReset" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;fontColor=#b85450;fontSize=8;" edge="1" source="31" target="61" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- AuthService → Cloud Firestore (staff + roles lookup) -->
+    <mxCell id="a16" value="/staff lookup&#xa;/roles write" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;fontColor=#b85450;fontSize=8;" edge="1" source="31" target="62" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- FirestoreService → Cloud Firestore -->
+    <mxCell id="a17" value="CRUD patients&#xa;woundAssessments&#xa;approvals" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;fontColor=#b85450;fontSize=8;" edge="1" source="32" target="62" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- FirestoreService → Firebase Storage -->
+    <mxCell id="a18" value="putFile()&#xa;getDownloadURL()" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;fontColor=#b85450;fontSize=8;" edge="1" source="32" target="63" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════ LEGEND ═══════════════════════ -->
+    <mxCell id="90" value="Legend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+      <mxGeometry x="40" y="1220" width="500" height="140" as="geometry" />
+    </mxCell>
+    <mxCell id="91" value="■ Blue — Presentation Layer (Flutter Screens)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#6c8ebf;align=left;" vertex="1" parent="1">
+      <mxGeometry x="55" y="1245" width="300" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="92" value="■ Green — Service Layer (business logic)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#82b366;align=left;" vertex="1" parent="1">
+      <mxGeometry x="55" y="1265" width="300" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="93" value="■ Yellow — Model Layer (Dart data classes)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#d6b656;align=left;" vertex="1" parent="1">
+      <mxGeometry x="55" y="1285" width="300" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="94" value="■ Purple — On-Device ML (TFLite + MediaPipe)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#9673a6;align=left;" vertex="1" parent="1">
+      <mxGeometry x="55" y="1305" width="300" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="95" value="■ Red/Pink — Firebase Backend (Auth, Firestore, Storage)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#b85450;align=left;" vertex="1" parent="1">
+      <mxGeometry x="55" y="1325" width="350" height="20" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>

@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // Read the caller's role from roles/{uid} (written at registration).
+    // Returns 'nurse' as a safe default if the document is missing.
+    function userRole() {
+      return get(/databases/$(database)/documents/roles/$(request.auth.uid))
+               .data.get('role', 'nurse');
+    }
+
+    function isSupervisorOrAdmin() {
+      return userRole() in ['supervisor', 'lecturer', 'admin'];
+    }
+
+    function isAdmin() {
+      return userRole() == 'admin';
+    }
+
+    // ── roles/ ────────────────────────────────────────────────────────────────
+    // Written at registration (nurse default) and by admin for promotions.
+    // Each user can only read their own role document.
+    match /roles/{uid} {
+      allow read:   if isLoggedIn() && request.auth.uid == uid;
+      allow create: if isLoggedIn() && request.auth.uid == uid
+                       && request.resource.data.role == 'nurse';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ── staff/ ────────────────────────────────────────────────────────────────
+    // Readable without auth so the login flow can look up email by staffId.
+    // Only authenticated users may create (self-registration), and only with
+    // role 'nurse' — mirrors the roles/ collection's own create guard so a
+    // self-registering user can never write themselves in as supervisor/admin.
+    // Only supervisor/admin may update a staff record (e.g. to promote a role).
+    match /staff/{docId} {
+      allow read:   if true;
+      allow create: if isLoggedIn() && request.resource.data.role == 'nurse';
+      allow update: if isSupervisorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── patients/ ─────────────────────────────────────────────────────────────
+    // All authenticated staff may read.
+    // Only nurses, supervisors, and admins may add or edit.
+    // Deletion is locked to supervisor/lecturer/admin.
+    match /patients/{patientId} {
+      allow read:           if isLoggedIn();
+      allow create, update: if isLoggedIn()
+                               && userRole() in ['nurse', 'supervisor', 'lecturer', 'admin'];
+      allow delete:         if isSupervisorOrAdmin();
+    }
+
+    // ── woundAssessments/ ─────────────────────────────────────────────────────
+    // All authenticated staff may read and create.
+    // Update is split:
+    //   - supervisor/admin can update any field (including approvedForTraining)
+    //   - nurse can update clinical fields but CANNOT flip approvedForTraining to true
+    // Deletion is allowed for any authenticated user.
+    match /woundAssessments/{assessmentId} {
+      allow read:   if isLoggedIn();
+      allow create: if isLoggedIn();
+      allow update: if isLoggedIn() && (
+                      isSupervisorOrAdmin()
+                      ||
+                      // Nurse update: approvedForTraining must stay false, and
+                      // supervisor-only fields must be left untouched
+                      (
+                        request.resource.data.get('approvedForTraining', false) == false
+                        && request.resource.data.get('supervisorCorrectedType', null)
+                             == resource.data.get('supervisorCorrectedType', null)
+                        && request.resource.data.get('supervisorCorrectedName', null)
+                             == resource.data.get('supervisorCorrectedName', null)
+                        && request.resource.data.get('supervisorFeedback', null)
+                             == resource.data.get('supervisorFeedback', null)
+                        && request.resource.data.get('supervisorFeedbackBy', null)
+                             == resource.data.get('supervisorFeedbackBy', null)
+                        && request.resource.data.get('supervisorFeedbackAt', null)
+                             == resource.data.get('supervisorFeedbackAt', null)
+                        && request.resource.data.get('hasSupervisorFeedback', false)
+                             == resource.data.get('hasSupervisorFeedback', false)
+                      )
+                    );
+      allow delete: if isLoggedIn();
+    }
+  }
+}

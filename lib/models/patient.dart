@@ -1,3 +1,6 @@
+import 'chronic_condition.dart';
+import 'vital_reading.dart';
+
 class Patient {
   final String id;
   final String mrn;
@@ -14,7 +17,9 @@ class Patient {
   final String? addressRoom;
   final String? allergies;
   final String? medications;
-  final String? chronicDiseases;
+  final List<ChronicCondition> chronicConditions;
+  /// Dated vital-sign readings, oldest first. See [latestVitals].
+  final List<VitalReading> vitalReadings;
   final String? emergencyContactName;
   final String? emergencyContactRelationship;
   final String? emergencyContactPhone;
@@ -33,11 +38,35 @@ class Patient {
     this.addressRoom,
     this.allergies,
     this.medications,
-    this.chronicDiseases,
+    this.chronicConditions = const [],
+    this.vitalReadings = const [],
     this.emergencyContactName,
     this.emergencyContactRelationship,
     this.emergencyContactPhone,
   });
+
+  /// True when [allergies] names a real allergy rather than being blank or a
+  /// "none" placeholder (e.g. "None", "Nil", "NKDA", "No known allergies").
+  bool get hasKnownAllergies {
+    final text = allergies?.trim().toLowerCase() ?? '';
+    if (text.isEmpty) return false;
+    const noneValues = {
+      'none', 'nil', 'no', 'nka', 'nkda', 'nkfa', 'nkfda', 'nkmi', 'n/a',
+      'na', '-', 'no allergy', 'no allergies', 'not known', 'unknown',
+      'no known allergies', 'no known allergy', 'no known drug allergies',
+      'no known drug allergy', 'no known medical illness',
+    };
+    // Ignore trailing punctuation, e.g. "NKDA." or "nil,"
+    final normalised = text.replaceAll(RegExp(r'[.,;:!]+$'), '').trim();
+    return !noneValues.contains(normalised);
+  }
+
+  /// The most recent vital-sign reading, or null if none were recorded.
+  VitalReading? get latestVitals {
+    if (vitalReadings.isEmpty) return null;
+    return vitalReadings.reduce(
+        (a, b) => b.takenAt.isAfter(a.takenAt) ? b : a);
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -54,7 +83,8 @@ class Patient {
       'addressRoom': addressRoom,
       'allergies': allergies,
       'medications': medications,
-      'chronicDiseases': chronicDiseases,
+      'chronicConditions': chronicConditions.map((c) => c.toJson()).toList(),
+      'vitalReadings': vitalReadings.map((v) => v.toJson()).toList(),
       'emergencyContactName': emergencyContactName,
       'emergencyContactRelationship': emergencyContactRelationship,
       'emergencyContactPhone': emergencyContactPhone,
@@ -104,7 +134,8 @@ class Patient {
         addressRoom: json['addressRoom'],
         allergies: json['allergies'],
         medications: json['medications'],
-        chronicDiseases: json['chronicDiseases'],
+        chronicConditions: _parseChronicConditions(json),
+        vitalReadings: _parseVitalReadings(json),
         emergencyContactName: json['emergencyContactName'],
         emergencyContactRelationship: json['emergencyContactRelationship'],
         emergencyContactPhone: json['emergencyContactPhone'],
@@ -114,5 +145,34 @@ class Patient {
       print('   Patient data: $json');
       rethrow;
     }
+  }
+
+  static List<VitalReading> _parseVitalReadings(Map<String, dynamic> json) {
+    final readings = json['vitalReadings'];
+    if (readings is! List) return const [];
+    return readings
+        .map((e) => VitalReading.fromJson(Map<String, dynamic>.from(e)))
+        .toList()
+      ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
+  }
+
+  // Prefers the new structured 'chronicConditions' list; falls back to
+  // splitting the legacy free-text 'chronicDiseases' string (pre-migration
+  // records) so old documents still load instead of losing their data.
+  static List<ChronicCondition> _parseChronicConditions(
+      Map<String, dynamic> json) {
+    final conditions = json['chronicConditions'];
+    if (conditions is List) {
+      return conditions
+          .map((e) => ChronicCondition.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+
+    final legacy = json['chronicDiseases'];
+    if (legacy is String && legacy.trim().isNotEmpty) {
+      return ChronicCondition.listFromLegacyString(legacy);
+    }
+
+    return const [];
   }
 }

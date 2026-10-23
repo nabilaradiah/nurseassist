@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // wound_images/{uid}/... — any authenticated staff member may view a
+    // wound image (supervisors/other nurses need to see any patient's
+    // photos), but only the uploading user may write/overwrite/delete
+    // their own images. Matches the upload path used in
+    // FirestoreService.uploadWoundImage().
+    match /wound_images/{uid}/{allPaths=**} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.uid == uid;
+    }
+
+    // training-data/approved/... is written only by the copyApprovedWoundImage
+    // Cloud Function via the Admin SDK, which bypasses these rules entirely.
+    // No client (nurse/supervisor/admin app) ever needs direct access here,
+    // so it's left unmatched — Storage denies by default for any path with
+    // no matching rule.
+  }
+}

@@ -1,0 +1,244 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="ERD_DIAG" name="Page-1">
+    <mxGraphModel dx="1564" dy="845" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="680" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="band_ext" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999;opacity=30;" value="" vertex="1">
+          <mxGeometry height="610" width="278" x="10" y="46" as="geometry" />
+        </mxCell>
+        <mxCell id="band_col" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=20;" value="" vertex="1">
+          <mxGeometry height="610" width="1088" x="294" y="46" as="geometry" />
+        </mxCell>
+        <mxCell id="band_emb" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;opacity=20;" value="" vertex="1">
+          <mxGeometry height="610" width="464" x="1388" y="46" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_ext" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontStyle=1;fontColor=#666;" value="External Systems" vertex="1">
+          <mxGeometry height="18" width="278" x="10" y="48" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_col" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontStyle=1;fontColor=#6c8ebf;" value="Firestore Collections" vertex="1">
+          <mxGeometry height="18" width="1088" x="294" y="48" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_emb" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontStyle=1;fontColor=#9673a6;" value="Embedded Documents (nested maps — not separate collections)" vertex="1">
+          <mxGeometry height="18" width="400" x="1388" y="48" as="geometry" />
+        </mxCell>
+        <mxCell id="fa_h" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#888;strokeWidth=2;fontStyle=1;fontSize=12;align=center;" value="Firebase Auth" vertex="1">
+          <mxGeometry height="36" width="240" x="30" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="fa_b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#888;strokeWidth=2;align=left;fontSize=10;spacingLeft=8;verticalAlign=top;spacingTop=5;" value="PK  uid : String&#xa;    email : String&#xa;    emailVerified : bool&#xa;    passwordHash : String&#xa;    «managed by Firebase SDK»" vertex="1">
+          <mxGeometry height="100" width="240" x="30" y="112" as="geometry" />
+        </mxCell>
+        <mxCell id="st_h" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2.5;fontStyle=1;fontSize=12;align=center;" value="staff" vertex="1">
+          <mxGeometry height="36" width="265" x="310" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="st_b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#6c8ebf;strokeWidth=2.5;align=left;fontSize=10;spacingLeft=8;verticalAlign=top;spacingTop=5;" value="PK  id : String  (Firestore document ID)&#xa;UK  staffId : String  (e.g. IIUM1234)&#xa;    name : String&#xa;    department : String&#xa;    email : String&#xa;    role : String  (nurse | supervisor | admin)&#xa;    createdAt : Timestamp" vertex="1">
+          <mxGeometry height="134" width="265" x="310" y="112" as="geometry" />
+        </mxCell>
+        <mxCell id="ro_h" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2.5;fontStyle=1;fontSize=12;align=center;" value="roles" vertex="1">
+          <mxGeometry height="36" width="265" x="310" y="276" as="geometry" />
+        </mxCell>
+        <mxCell id="ro_b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#6c8ebf;strokeWidth=2.5;align=left;fontSize=10;spacingLeft=8;verticalAlign=top;spacingTop=5;fontStyle=2;" value="PK  uid : String  (= Firebase Auth uid)&#xa;    role : String&#xa;    staffId : String&#xa;    «used by Firestore Security Rules»" vertex="1">
+          <mxGeometry height="80" width="265" x="310" y="312" as="geometry" />
+        </mxCell>
+        <mxCell id="pt_h" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2.5;fontStyle=1;fontSize=12;align=center;" value="patients" vertex="1">
+          <mxGeometry height="36" width="270" x="615" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="pt_b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#6c8ebf;strokeWidth=2.5;align=left;fontSize=10;spacingLeft=8;verticalAlign=top;spacingTop=5;" value="PK  id : String  (Firestore document ID)&#xa;UK  mrn : String  (Medical Record Number)&#xa;    name : String&#xa;    age : int&#xa;    gender : String&#xa;    contact : String&#xa;    registeredDate : DateTime&#xa;FK  staffIdAssignedTo : String → staff.staffId&#xa;    woundAssessmentIds : Array&lt;String&gt;&#xa;    phone : String?&#xa;    addressRoom : String?&#xa;    allergies : String?&#xa;    medications : String?&#xa;    chronicDiseases : String?&#xa;    emergencyContactName : String?&#xa;    emergencyContactPhone : String?" vertex="1">
+          <mxGeometry height="298" width="270" x="615" y="112" as="geometry" />
+        </mxCell>
+        <mxCell id="wa_h" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2.5;fontStyle=1;fontSize=12;align=center;" value="woundAssessments" vertex="1">
+          <mxGeometry height="36" width="305" x="935" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="wa_b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#6c8ebf;strokeWidth=2.5;align=left;fontSize=10;spacingLeft=8;verticalAlign=top;spacingTop=5;" value="PK  id : String  (Firestore document ID)&#xa;FK  patientId : String → patients.id&#xa;    imageUrl : String  (Firebase Storage URL)&#xa;    assessmentDate : DateTime&#xa;    additionalNotes : String?&#xa;    requiresSpecialistConfirmation : bool&#xa;    specialistConfirmed : bool?&#xa;    modelPredictedType : int?  {immutable — AI output}&#xa;    modelConfidence : double?&#xa;    clinicianCorrectedType : int?&#xa;    clinicianCorrectedName : String?&#xa;FK  correctedBy : String? → staff.id&#xa;    correctedAt : DateTime?&#xa;    approvedForTraining : bool&#xa;FK  approvedBy : String? → staff.id&#xa;    approvedAt : DateTime?&#xa;    rejectedForTraining : bool&#xa;FK  rejectedBy : String? → staff.id&#xa;    rejectedAt : DateTime?&#xa;    analysisResult : {embedded map}" vertex="1">
+          <mxGeometry height="374" width="305" x="935" y="112" as="geometry" />
+        </mxCell>
+        <mxCell id="fs_h" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#888;strokeWidth=2;fontStyle=1;fontSize=12;align=center;" value="Firebase Storage" vertex="1">
+          <mxGeometry height="36" width="305" x="935" y="516" as="geometry" />
+        </mxCell>
+        <mxCell id="fs_b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#888;strokeWidth=2;align=left;fontSize=10;spacingLeft=8;verticalAlign=top;spacingTop=5;" value="    Path : wound_images/{uid}/{fileName}&#xa;    Content-Type : image/jpeg&#xa;    downloadURL : String" vertex="1">
+          <mxGeometry height="62" width="305" x="935" y="552" as="geometry" />
+        </mxCell>
+        <mxCell id="ar_h" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2.5;fontStyle=3;fontSize=12;align=center;" value="analysisResult  «embedded»" vertex="1">
+          <mxGeometry height="36" width="370" x="1400" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="ar_b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f5ff;strokeColor=#9673a6;strokeWidth=2.5;align=left;fontSize=10;spacingLeft=8;verticalAlign=top;spacingTop=5;" value="    confidenceScore : double&#xa;    woundType : int  (1 – 8)&#xa;    woundName : String  (e.g. Type_3)&#xa;    severity : String&#xa;    estimatedSize : double?&#xa;    segmentationMapUrl : String?&#xa;    allClassProbabilities : Array&lt;double&gt;  (8 values)&#xa;    characteristics : {embedded map}&#xa;    management : {embedded map}" vertex="1">
+          <mxGeometry height="172" width="370" x="1400" y="112" as="geometry" />
+        </mxCell>
+        <mxCell id="wc_h" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2.5;fontStyle=3;fontSize=12;align=center;" value="characteristics  «embedded»" vertex="1">
+          <mxGeometry height="36" width="370" x="1400" y="314" as="geometry" />
+        </mxCell>
+        <mxCell id="wc_b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f5ff;strokeColor=#9673a6;strokeWidth=2.5;align=left;fontSize=10;spacingLeft=8;verticalAlign=top;spacingTop=5;" value="    necroticTissue : String&#xa;    infection : String&#xa;    exudateLevel : String&#xa;    tissueClassification : Array&lt;String&gt;" vertex="1">
+          <mxGeometry height="80" width="370" x="1400" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="wm_h" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2.5;fontStyle=3;fontSize=12;align=center;" value="management  «embedded»" vertex="1">
+          <mxGeometry height="36" width="370" x="1400" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="wm_b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f5ff;strokeColor=#9673a6;strokeWidth=2.5;align=left;fontSize=10;spacingLeft=8;verticalAlign=top;spacingTop=5;" value="    dressingMaterials : Array&lt;String&gt;&#xa;    antibioticRecommendation : String&#xa;    surgicalProcedures : Array&lt;String&gt;&#xa;    additionalNotes : String?" vertex="1">
+          <mxGeometry height="80" width="370" x="1400" y="496" as="geometry" />
+        </mxCell>
+        <mxCell id="r1" edge="1" parent="1" source="fa_h" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#555;strokeWidth=2;                  startArrow=ERmandOne;startFill=0;endArrow=ERzeroToOne;endFill=0;                  fontSize=10;fontStyle=1;align=center;                  exitX=1;exitY=0.5;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" target="st_h" value="email">
+          <mxGeometry relative="1" x="0.15" y="21" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r1_s" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#333;" value="1" vertex="1">
+          <mxGeometry height="18" width="20" x="255" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="r1_e" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#333;" value="0..1" vertex="1">
+          <mxGeometry height="18" width="30" x="290" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="r2" edge="1" parent="1" source="fa_b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#555;strokeWidth=2;                  startArrow=ERmandOne;startFill=0;endArrow=ERmandOne;endFill=0;                  fontSize=10;fontStyle=1;align=center;                  exitX=0.5;exitY=1;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" target="ro_h" value="uid">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="150" y="240" />
+              <mxPoint x="296" y="240" />
+              <mxPoint x="296" y="294" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r2_s" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#333;" value="1" vertex="1">
+          <mxGeometry height="18" width="20" x="112" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_e" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#333;" value="1" vertex="1">
+          <mxGeometry height="18" width="20" x="300" y="278" as="geometry" />
+        </mxCell>
+        <mxCell id="r3" edge="1" parent="1" source="st_h" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#6c8ebf;strokeWidth=2.5;                  startArrow=ERmandOne;startFill=0;endArrow=ERzeroToMany;endFill=0;                  fontSize=10;fontStyle=1;align=center;                  exitX=1;exitY=0.5;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" target="pt_h" value="staffIdAssignedTo">
+          <mxGeometry relative="1" x="0.35" y="27" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r3_s" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#6c8ebf;" value="1" vertex="1">
+          <mxGeometry height="18" width="20" x="582" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="r3_e" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#6c8ebf;" value="0..*" vertex="1">
+          <mxGeometry height="18" width="34" x="618" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="r4" edge="1" parent="1" source="pt_h" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#6c8ebf;strokeWidth=2.5;                  startArrow=ERmandOne;startFill=0;endArrow=ERzeroToMany;endFill=0;                  fontSize=10;fontStyle=1;align=center;                  exitX=1;exitY=0.5;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" target="wa_h" value="patientId">
+          <mxGeometry relative="1" y="22" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r4_s" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#6c8ebf;" value="1" vertex="1">
+          <mxGeometry height="18" width="20" x="892" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_e" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#6c8ebf;" value="0..*" vertex="1">
+          <mxGeometry height="18" width="34" x="920" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="r5" edge="1" parent="1" source="wa_h" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#9673a6;strokeWidth=2.5;dashed=1;dashPattern=8 4;                  startArrow=diamondThin;startFill=1;endArrow=ERmandOne;endFill=0;                  fontSize=10;fontStyle=3;align=center;                  exitX=1;exitY=0.5;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" target="ar_h" value="contains (embedded)">
+          <mxGeometry relative="1" x="0.1375" y="24" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r5_s" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#9673a6;" value="1" vertex="1">
+          <mxGeometry height="18" width="20" x="1248" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_e" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#9673a6;" value="0..1" vertex="1">
+          <mxGeometry height="18" width="30" x="1372" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="r6" edge="1" parent="1" source="ar_b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#9673a6;strokeWidth=2.5;dashed=1;dashPattern=8 4;                  startArrow=diamondThin;startFill=1;endArrow=ERmandOne;endFill=0;                  fontSize=10;fontStyle=3;align=center;                  exitX=0.5;exitY=0.25;entryX=0.5;entryY=0;entryPerimeter=0;exitX=1;exitDx=0;exitDy=0;" value="contains">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1770" y="115" />
+              <mxPoint x="1827" y="115" />
+              <mxPoint x="1827" y="335" />
+            </Array>
+            <mxPoint x="1955" y="114.99653594771239" as="sourcePoint" />
+            <mxPoint x="1770" y="334.99" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r6_s" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#9673a6;" value="1" vertex="1">
+          <mxGeometry height="18" width="20" x="1780" y="332" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_e" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#9673a6;" value="1" vertex="1">
+          <mxGeometry height="18" width="20" x="1780" y="314" as="geometry" />
+        </mxCell>
+        <mxCell id="r7" edge="1" parent="1" source="ar_b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#9673a6;strokeWidth=2.5;dashed=1;dashPattern=8 4;                  startArrow=diamondThin;startFill=1;endArrow=ERmandOne;endFill=0;                  fontSize=10;fontStyle=3;align=center;                  exitX=0;exitY=0.9;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" target="wm_h" value="contains">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1378" y="267" />
+              <mxPoint x="1378" y="478" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r8" edge="1" parent="1" source="wa_b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#888;strokeWidth=2;dashed=1;dashPattern=6 3;                  startArrow=none;endArrow=open;endFill=0;                  fontSize=10;fontStyle=1;align=center;                  exitX=0.5;exitY=1;exitPerimeter=0;entryX=0.5;entryY=0;entryPerimeter=0;" target="fs_h" value="imageUrl (download URL)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#bbb;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="309" width="240" x="30" y="297" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontStyle=1;" value="Legend" vertex="1">
+          <mxGeometry height="20" width="240" x="29" y="299" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_pk_t" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontStyle=1;" value="PK  Primary Key (unique document ID)" vertex="1">
+          <mxGeometry height="16" width="226" x="40" y="319" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_fk_t" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" value="FK  Foreign Key — app-level reference" vertex="1">
+          <mxGeometry height="16" width="226" x="40" y="337" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_uk_t" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" value="UK  Unique Key (unique within collection)" vertex="1">
+          <mxGeometry height="16" width="226" x="40" y="355" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_q_t" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" value="?    Optional field (nullable)" vertex="1">
+          <mxGeometry height="16" width="226" x="40" y="373" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_div" parent="1" style="line;strokeColor=#ccc;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="8" width="222" x="40" y="393" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_a1" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2.5;startArrow=ERmandOne;startFill=0;endArrow=ERzeroToMany;endFill=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="419" as="sourcePoint" />
+            <mxPoint x="120" y="419" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_l1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" value="One to Zero-or-Many" vertex="1">
+          <mxGeometry height="18" width="140" x="126" y="411" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_a2" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2.5;startArrow=ERmandOne;startFill=0;endArrow=ERzeroToOne;endFill=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="443" as="sourcePoint" />
+            <mxPoint x="120" y="443" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_l2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" value="One to Zero-or-One" vertex="1">
+          <mxGeometry height="18" width="140" x="126" y="435" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_a3" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555;strokeWidth=2;startArrow=ERmandOne;startFill=0;endArrow=ERmandOne;endFill=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="467" as="sourcePoint" />
+            <mxPoint x="120" y="467" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_l3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" value="One to Exactly One" vertex="1">
+          <mxGeometry height="18" width="140" x="126" y="459" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_a4" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2.5;dashed=1;dashPattern=8 4;startArrow=diamondThin;startFill=1;endArrow=ERmandOne;endFill=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="491" as="sourcePoint" />
+            <mxPoint x="120" y="491" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_l4" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" value="Embedded composition" vertex="1">
+          <mxGeometry height="18" width="140" x="126" y="483" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_a5" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#888;strokeWidth=2;dashed=1;dashPattern=6 3;startArrow=none;endArrow=open;endFill=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="515" as="sourcePoint" />
+            <mxPoint x="120" y="515" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_l5" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" value="URL soft reference" vertex="1">
+          <mxGeometry height="18" width="140" x="126" y="507" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_div2" parent="1" style="line;strokeColor=#ccc;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="8" width="222" x="40" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_note" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontStyle=2;" value="Crow&#39;s Foot notation:&#xa;‖ = mandatory one  |○ = zero or one&#xa;&lt; = many  ○&lt; = zero or many" vertex="1">
+          <mxGeometry height="48" width="222" x="40" y="537" as="geometry" />
+        </mxCell>
+        <mxCell id="footnote" parent="1" style="text;html=1;strokeColor=#d6b656;fillColor=#fffde7;align=left;fontSize=9;fontStyle=2;rounded=1;spacingLeft=8;spacingTop=5;spacingBottom=5;" value="⚠  Firestore is a NoSQL document database — foreign key constraints are NOT enforced by the database; they are application-level only.  woundAssessmentIds[] is a soft array reference.  analysisResult, characteristics, and management are stored as nested maps inside&lt;div&gt;&amp;nbsp;each woundAssessments document, not as separate collections.&lt;/div&gt;" vertex="1">
+          <mxGeometry height="44" width="1090" x="294" y="622" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

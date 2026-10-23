@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>NurseAssist needs camera access to capture wound photos for assessment.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>NurseAssist needs photo library access to select and save wound images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>NurseAssist needs permission to save wound images to your photo library.</string>
 </dict>
 </plist>

@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
+import '../widgets/brand_logo.dart';
+import '../widgets/patient_avatar.dart';
+import '../widgets/primary_fab.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../models/staff.dart';
 import '../models/patient.dart';
+import '../models/wound_assessment.dart';
 import 'patient_list_screen.dart';
+import 'patient_profile_screen.dart';
 import 'login_screen.dart';
-import 'add_patient_lookup_screen.dart';
+import 'add_edit_patient_screen.dart';
+import 'lecturer_approval_screen.dart';
+import 'nurse_feedback_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -22,6 +30,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   List<Patient> _patientsList = [];
   int _totalPatients = 0;
   int _totalAssessments = 0;
+  int _todayPatients = 0;
+  int _todayAssessments = 0;
+  int _pendingApprovals = 0;
+  int _needsAttentionCount = 0;
   bool _isLoading = true;
 
   @override
@@ -57,21 +69,51 @@ class _DashboardScreenState extends State<DashboardScreen>
       final staff = await _authService.getCurrentStaff();
       debugPrint('👤 Current staff: ${staff?.name} (${staff?.staffId})');
 
-      // Get only patients assigned to this staff member
       List<Patient> patients = [];
       if (staff != null) {
         patients =
             await _firestoreService.getPatientsByStaffId(staff.staffId);
-        debugPrint(
-            '👥 Loaded ${patients.length} patients for ${staff.name}');
+        debugPrint('👥 Loaded ${patients.length} shared patients');
       }
 
       int assessmentCount = 0;
       for (var patient in patients) {
-        // Count only non-empty assessment IDs
         assessmentCount += patient.woundAssessmentIds
             .where((id) => id.isNotEmpty)
             .length;
+      }
+
+      // Today's counts
+      final today = DateTime.now();
+      bool isToday(DateTime d) =>
+          d.year == today.year &&
+          d.month == today.month &&
+          d.day == today.day;
+
+      final todayPatients =
+          patients.where((p) => isToday(p.registeredDate)).length;
+
+      int todayAssessmentCount = 0;
+      if (patients.isNotEmpty) {
+        final List<List<WoundAssessment>> allLists = await Future.wait(
+          patients.map((p) => _firestoreService.getWoundAssessments(p.id)),
+        );
+        for (final list in allLists) {
+          todayAssessmentCount +=
+              list.where((a) => isToday(a.assessmentDate)).length;
+        }
+      }
+
+      int pendingCount = 0;
+      int needsAttentionCount = 0;
+      if (staff != null && staff.isLecturer) {
+        final pending =
+            await _firestoreService.getPendingApprovalAssessments();
+        pendingCount = pending.length;
+      } else if (staff != null) {
+        final needsAttention =
+            await _firestoreService.getAssessmentsNeedingAttention(staff.staffId);
+        needsAttentionCount = needsAttention.length;
       }
 
       setState(() {
@@ -79,6 +121,10 @@ class _DashboardScreenState extends State<DashboardScreen>
         _patientsList = patients;
         _totalPatients = patients.length;
         _totalAssessments = assessmentCount;
+        _todayPatients = todayPatients;
+        _todayAssessments = todayAssessmentCount;
+        _pendingApprovals = pendingCount;
+        _needsAttentionCount = needsAttentionCount;
         _isLoading = false;
       });
     } catch (e) {
@@ -94,25 +140,26 @@ class _DashboardScreenState extends State<DashboardScreen>
         return AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Logout',
-            style: TextStyle(fontWeight: FontWeight.w700),
+          title: const Text('End your shift?', style: kH3),
+          content: const Text(
+            "You'll need to sign in again to keep documenting.",
+            style: TextStyle(fontSize: 14, color: kMuted1),
           ),
-          content: const Text('Are you sure you want to logout?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              style: TextButton.styleFrom(foregroundColor: kMuted1),
+              child: const Text('Stay logged in'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: kPrimary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Logout'),
+              child: const Text('End shift'),
             ),
           ],
         );
@@ -156,7 +203,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
@@ -172,28 +218,43 @@ class _DashboardScreenState extends State<DashboardScreen>
                       Row(
                         children: [
                           Expanded(
-                            child: _buildStatCard(
+                            child: _TodayTotalStatCard(
                               icon: Icons.people_alt_rounded,
-                              count: _totalPatients,
+                              accent: kPrimaryDark,
+                              accentBg: kBlue50,
+                              todayCount: _todayPatients,
+                              totalCount: _totalPatients,
                               label: 'Patients',
-                              color: Colors.blue.shade600,
-                              bgColor: Colors.blue.shade50,
                             ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: _buildStatCard(
+                            child: _TodayTotalStatCard(
                               icon: Icons.assignment_rounded,
-                              count: _totalAssessments,
+                              accent: kTeal600,
+                              accentBg: kTeal50,
+                              todayCount: _todayAssessments,
+                              totalCount: _totalAssessments,
                               label: 'Assessments',
-                              color: Colors.teal.shade600,
-                              bgColor: Colors.teal.shade50,
                             ),
                           ),
                         ],
                       ),
 
                       const SizedBox(height: 32),
+
+                      // Lecturer-only: Pending Approvals card
+                      if (_currentStaff?.isLecturer == true) ...[
+                        _buildLecturerReviewCard(),
+                        const SizedBox(height: 32),
+                      ],
+
+                      // Nurse-only: Needs Your Attention card
+                      if (_currentStaff?.isLecturer == false &&
+                          _needsAttentionCount > 0) ...[
+                        _buildNeedsAttentionCard(),
+                        const SizedBox(height: 32),
+                      ],
 
                       // Section header
                       _buildSectionHeader(),
@@ -216,31 +277,22 @@ class _DashboardScreenState extends State<DashboardScreen>
               ],
             ),
 
-      // Add Patient FAB — same logic, better placement
       floatingActionButton: _isLoading
           ? null
-          : FloatingActionButton.extended(
+          : PrimaryFAB(
+              label: 'Add Patient',
+              icon: Icons.add_rounded,
               onPressed: () {
                 Navigator.of(context)
                     .push<bool>(
                   MaterialPageRoute(
-                    builder: (_) => const AddPatientLookupScreen(),
+                    builder: (_) => const AddEditPatientScreen(),
                   ),
                 )
                     .then((added) {
-                  if (added == true) {
-                    _loadData();
-                  }
+                  if (added == true) _loadData();
                 });
               },
-              backgroundColor: Colors.blue.shade700,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text(
-                'Add Patient',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              elevation: 4,
             ),
     );
   }
@@ -250,25 +302,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildHeader() {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.blue.shade700,
-            Colors.blue.shade500,
-          ],
-        ),
+        gradient: kHeroGradient,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(28),
           bottomRight: Radius.circular(28),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.shade200.withOpacity(0.5),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        boxShadow: kShadowHero,
       ),
       child: SafeArea(
         bottom: false,
@@ -283,18 +322,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.favorite_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
+                      const BrandLogo(size: 32, onGradient: true),
                       const SizedBox(width: 10),
                       const Text(
                         'NurseAssist',
@@ -312,10 +340,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -342,7 +370,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       Text(
                         _getGreeting(),
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.85),
+                          color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 15,
                           fontWeight: FontWeight.w400,
                         ),
@@ -357,13 +385,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                           letterSpacing: 0.2,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _getFormattedDate(),
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.75),
-                          fontSize: 13,
-                        ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          if (_currentStaff != null) ...[
+                            _buildRoleBadge(_currentStaff!.role),
+                            const SizedBox(width: 10),
+                          ],
+                          Text(
+                            _getFormattedDate(),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   );
@@ -372,64 +408,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // ── stat card ──────────────────────────────────────────────────────────────
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required int count,
-    required String label,
-    required Color color,
-    required Color bgColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border(left: BorderSide(color: color, width: 4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            count.toString(),
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-              color: Colors.grey.shade800,
-              height: 1,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade500,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -446,17 +424,17 @@ class _DashboardScreenState extends State<DashboardScreen>
               width: 4,
               height: 20,
               decoration: BoxDecoration(
-                color: Colors.blue.shade600,
+                color: kPrimary,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(width: 10),
-            Text(
+            const Text(
               'Your Patients',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Colors.grey.shade800,
+                color: kInk2,
               ),
             ),
           ],
@@ -475,7 +453,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           label: const Text('View All'),
           iconAlignment: IconAlignment.end,
           style: TextButton.styleFrom(
-            foregroundColor: Colors.blue.shade600,
+            foregroundColor: kPrimary,
             textStyle: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
@@ -498,13 +476,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: kShadowSm,
       ),
       child: Material(
         color: Colors.transparent,
@@ -515,8 +487,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             Navigator.of(context)
                 .push(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        PatientListScreen(initialPatientId: patient.id),
+                    builder: (_) => PatientProfileScreen(patient: patient),
                   ),
                 )
                 .then((_) => _loadData());
@@ -526,19 +497,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                // Avatar
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: Colors.blue.shade100,
-                  child: Text(
-                    patient.name[0].toUpperCase(),
-                    style: TextStyle(
-                      color: Colors.blue.shade700,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
+                PatientAvatar(name: patient.name, size: 48),
                 const SizedBox(width: 14),
 
                 // Name + subtitle
@@ -548,18 +507,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                     children: [
                       Text(
                         patient.name,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
-                          color: Colors.grey.shade800,
+                          color: kInk2,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${patient.mrn}  •  ${patient.age}y  •  ${patient.gender}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
-                          color: Colors.grey.shade500,
+                          color: kMuted1,
                         ),
                       ),
                     ],
@@ -571,24 +530,194 @@ class _DashboardScreenState extends State<DashboardScreen>
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: kBlue50,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '$woundCount wound${woundCount == 1 ? '' : 's'}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.blue.shade700,
+                      color: kPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.chevron_right_rounded,
-                    color: Colors.grey.shade400),
+                const Icon(Icons.chevron_right_rounded,
+                    color: kMuted3),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ── role badge ─────────────────────────────────────────────────────────────
+
+  Widget _buildRoleBadge(String role) {
+    final (label, bg, border) = switch (role) {
+      'admin'                  => ('Admin',      const Color(0x33FF5252), const Color(0x99FF5252)),
+      'supervisor' || 'lecturer' => ('Supervisor', const Color(0x33FFD740), const Color(0x99FFD740)),
+      _                        => ('Nurse',      const Color(0x33FFFFFF), const Color(0x66FFFFFF)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+
+  // ── lecturer review card ───────────────────────────────────────────────────
+
+  Widget _buildLecturerReviewCard() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(
+                  builder: (_) => const LecturerApprovalScreen()),
+            )
+            .then((_) => _loadData());
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: kLecturerGradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: kShadowLecturer,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.rate_review_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pending Approvals',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _pendingApprovals == 0
+                        ? 'No assessments awaiting review'
+                        : '$_pendingApprovals wound${_pendingApprovals == 1 ? '' : 's'} awaiting your approval',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── needs attention card ───────────────────────────────────────────────────
+
+  Widget _buildNeedsAttentionCard() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(builder: (_) => const NurseFeedbackScreen()),
+            )
+            .then((_) => _loadData());
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: kWarning,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: kWarning.withValues(alpha: 0.30),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.feedback_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Needs Your Attention',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _needsAttentionCount == 1
+                        ? '1 assessment has supervisor feedback'
+                        : '$_needsAttentionCount assessments have supervisor feedback',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ],
         ),
       ),
     );
@@ -603,36 +732,167 @@ class _DashboardScreenState extends State<DashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: kShadowSm,
       ),
-      child: Column(
+      child: const Column(
         children: [
           Icon(Icons.people_outline_rounded,
-              size: 52, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
+              size: 52, color: kMuted3),
+          SizedBox(height: 16),
           Text(
             'No patients yet',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade500,
+              color: kMuted1,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             'Tap "Add Patient" below to get started',
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey.shade400,
+              color: kMuted3,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Today / Total split stat card ────────────────────────────────────────────
+
+class _TodayTotalStatCard extends StatelessWidget {
+  final IconData icon;
+  final Color accent;
+  final Color accentBg;
+  final int todayCount;
+  final int totalCount;
+  final String label;
+
+  const _TodayTotalStatCard({
+    required this.icon,
+    required this.accent,
+    required this.accentBg,
+    required this.todayCount,
+    required this.totalCount,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(kRadiusXl),
+        boxShadow: kShadowMd,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Left panel — TODAY ─────────────────────────────────────────
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+                color: accentBg,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, color: accent, size: 16),
+                          const SizedBox(width: 5),
+                          Text(
+                            'TODAY',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.9,
+                              color: accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      todayCount.toString(),
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        color: accent,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // One line, shrinking slightly on narrow phones so
+                    // "Assessments" never wraps onto a second line
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: accent.withValues(alpha: 0.75),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Divider ────────────────────────────────────────────────────
+            const VerticalDivider(width: 1, thickness: 1, color: kLine),
+
+            // ── Right panel — TOTAL ────────────────────────────────────────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 14, 14, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'TOTAL',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.9,
+                        color: kMuted3,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      totalCount.toString(),
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: kInk2,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '',                           // spacer — same height as label
+                      style: TextStyle(fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

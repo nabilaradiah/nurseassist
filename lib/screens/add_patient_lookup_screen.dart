@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import '../models/chronic_condition.dart';
 import '../models/patient.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../theme.dart';
+import '../widgets/patient_avatar.dart';
 
 class AddPatientLookupScreen extends StatefulWidget {
   const AddPatientLookupScreen({super.key});
@@ -131,7 +134,8 @@ class _AddPatientLookupScreenState extends State<AddPatientLookupScreen> {
         addressRoom: _foundRecord!['location'],
         allergies: _foundRecord!['allergies'],
         medications: _foundRecord!['medications'],
-        chronicDiseases: _foundRecord!['chronicDiseases'],
+        chronicConditions:
+            ChronicCondition.listFromLegacyString(_foundRecord!['chronicDiseases']),
         emergencyContactName: _foundRecord!['emergencyName'],
         emergencyContactRelationship: _foundRecord!['emergencyRelationship'],
         emergencyContactPhone: _foundRecord!['emergencyPhone'],
@@ -166,232 +170,502 @@ class _AddPatientLookupScreenState extends State<AddPatientLookupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
-      appBar: AppBar(
-        backgroundColor: Colors.blue.shade50,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'New Patient',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(28),
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Register a new patient',
-                style: TextStyle(color: Colors.black54),
-              ),
-            ),
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Patient ID / MRN',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: const InputDecoration(
-                              hintText: 'Enter MRN or patient name',
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            ),
-                          ),
+      backgroundColor: kBgCanvas,
+      body: Stack(
+        children: [
+          // ── Scrollable content ──────────────────────────────────────────
+          SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ── Gradient hero ─────────────────────────────────────────
+                _buildHero(),
+
+                // ── Body padding ──────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Search bar
+                      _buildSearchBar(),
+
+                      // Not-found banner
+                      if (_notFound) ...[
+                        const SizedBox(height: 16),
+                        _buildNotFoundBanner(),
+                      ],
+
+                      // Found result
+                      if (_foundRecord != null) ...[
+                        const SizedBox(height: 16),
+                        _buildSuccessBanner(),
+                        const SizedBox(height: 12),
+                        _buildPatientHeroCard(),
+                        const SizedBox(height: 12),
+                        _buildSectionCard(
+                          icon: Icons.phone_outlined,
+                          title: 'Contact',
+                          rows: [
+                            ('Phone', _foundRecord!['phone']),
+                            ('Location', _foundRecord!['location']),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          height: 44,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                            ),
-                            onPressed: _isSearching ? null : _search,
-                            child: _isSearching
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  )
-                                : const Icon(Icons.search),
-                          ),
+                        const SizedBox(height: 10),
+                        _buildSectionCard(
+                          icon: Icons.medical_information_outlined,
+                          title: 'Medical',
+                          rows: [
+                            ('Allergies', _foundRecord!['allergies']),
+                            ('Medications', _foundRecord!['medications']),
+                            ('Chronic Disease', _foundRecord!['chronicDiseases']),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _buildSectionCard(
+                          icon: Icons.emergency_outlined,
+                          title: 'Emergency Contact',
+                          rows: [
+                            ('Name', _foundRecord!['emergencyName']),
+                            ('Relationship', _foundRecord!['emergencyRelationship']),
+                            ('Phone', _foundRecord!['emergencyPhone']),
+                          ],
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Enter the patient\'s hospital ID to fetch their information',
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
+          ),
 
-            if (_notFound) ...[
-              const SizedBox(height: 16),
-              Card(
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+          // ── Sticky bottom bar (shown when found) ────────────────────────
+          if (_foundRecord != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildBottomBar(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ── Hero ──────────────────────────────────────────────────────────────────
+
+  Widget _buildHero() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: kHeroGradient,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(kRadius3xl),
+          bottomRight: Radius.circular(kRadius3xl),
+        ),
+        boxShadow: kShadowHero,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Glass back button
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.35),
+                    ),
+                  ),
                   child: Row(
-                    children: const [
-                      Icon(Icons.error_outline, color: Colors.red),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text('No patient found. Check the MRN or try another search.'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.arrow_back_rounded,
+                          color: Colors.white, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Back',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ],
-
-            if (_foundRecord != null) ...[
-              const SizedBox(height: 16),
-              _buildFoundCard(),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: _isAdding ? null : _addPatient,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              const SizedBox(height: 20),
+              Text(
+                'NEW PATIENT · HOSPITAL REGISTRY',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.4,
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
-                child: _isAdding
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text('Add'),
               ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: _isAdding ? null : _resetSearch,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  side: BorderSide(color: Colors.grey.shade300),
+              const SizedBox(height: 6),
+              const Text(
+                'Find a patient',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.1,
                 ),
-                child: const Text('Search Another Patient'),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Search by MRN or full name to pull from hospital records.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFoundCard() {
+  // ── Search bar ────────────────────────────────────────────────────────────
+
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(kRadiusLg),
+        boxShadow: kShadowMd,
+        border: Border.all(color: kBlue400, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14),
+            child: Icon(Icons.search_rounded, color: kMuted3, size: 22),
+          ),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => _isSearching ? null : _search(),
+              style: const TextStyle(fontSize: 15, color: kInk2),
+              decoration: const InputDecoration(
+                hintText: 'Enter MRN or patient name…',
+                hintStyle: TextStyle(color: kMuted3),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding:
+                    EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(6),
+            child: SizedBox(
+              height: 40,
+              child: ElevatedButton(
+                onPressed: _isSearching ? null : _search,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                child: _isSearching
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white),
+                        ),
+                      )
+                    : const Text('Search',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Not-found banner ──────────────────────────────────────────────────────
+
+  Widget _buildNotFoundBanner() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kDangerBg,
+        borderRadius: BorderRadius.circular(kRadiusLg),
+        border: Border.all(color: kDanger.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              color: kDanger, size: 22),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'No patient found. Check the MRN or try another search.',
+              style: TextStyle(fontSize: 14, color: kInk2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Success banner ────────────────────────────────────────────────────────
+
+  Widget _buildSuccessBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: kSuccessBg,
+        borderRadius: BorderRadius.circular(kRadiusLg),
+        border: Border.all(color: kSuccess.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle_rounded,
+              color: kSuccess, size: 22),
+          const SizedBox(width: 12),
+          const Text(
+            'Patient found in hospital records',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: kSuccess,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Patient hero card ─────────────────────────────────────────────────────
+
+  Widget _buildPatientHeroCard() {
     final r = _foundRecord!;
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: const [
-                Icon(Icons.check_circle, color: Colors.green),
-                SizedBox(width: 8),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(kRadiusXl),
+        boxShadow: kShadowMd,
+      ),
+      child: Row(
+        children: [
+          PatientAvatar(name: r['name'] ?? '', size: 54),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  'Patient Found',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  r['name'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: kInk2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  r['nric'] ?? '',
+                  style: const TextStyle(fontSize: 13, color: kMuted1),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    _pill(r['mrn'] ?? ''),
+                    _pill('${r['age']} y/o'),
+                    _pill(r['gender'] ?? ''),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+          ),
+        ],
+      ),
+    );
+  }
 
-            _sectionTitle('Personal Information'),
-            _infoRow('Full Name', r['name']),
-            _infoRow('NRIC No', r['nric']),
-            _infoRow('Age', r['age']),
-            _infoRow('Gender', r['gender']),
-            _infoRow('MRN', r['mrn']),
-            const SizedBox(height: 12),
-
-            _sectionTitle('Contact Information'),
-            _infoRow('Phone', r['phone']),
-            _infoRow('Location', r['location']),
-            const SizedBox(height: 12),
-
-            _sectionTitle('Medical Information'),
-            _infoRow('Allergies', r['allergies']),
-            _infoRow('Medications', r['medications']),
-            _infoRow('Chronic Disease', r['chronicDiseases']),
-            const SizedBox(height: 12),
-
-            _sectionTitle('Emergency Contact'),
-            _infoRow('Name', r['emergencyName']),
-            _infoRow('Relationship', r['emergencyRelationship']),
-            _infoRow('Phone', r['emergencyPhone']),
-          ],
+  Widget _pill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: kBlue100,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: kPrimaryDark,
         ),
       ),
     );
   }
 
-  Widget _sectionTitle(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+  // ── Section card ──────────────────────────────────────────────────────────
+
+  Widget _buildSectionCard({
+    required IconData icon,
+    required String title,
+    required List<(String, String?)> rows,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(kRadiusXl),
+        boxShadow: kShadowMd,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Row(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: kBlue50,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(icon, color: kPrimary, size: 15),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: kInk2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...rows.map((row) => _kvRow(row.$1, row.$2)),
+        ],
       ),
     );
   }
 
-  Widget _infoRow(String label, String? value) {
+  Widget _kvRow(String key, String? value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 140,
+            width: 110,
             child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              key,
+              style: const TextStyle(fontSize: 13, color: kMuted1),
             ),
           ),
           Expanded(
-            child: Text(value?.isNotEmpty == true ? value! : '-')),
+            child: Text(
+              value?.isNotEmpty == true ? value! : '—',
+              style: const TextStyle(
+                  fontSize: 13,
+                  color: kInk2,
+                  fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Bottom action bar ─────────────────────────────────────────────────────
+
+  Widget _buildBottomBar() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: kLine, width: 1)),
+        boxShadow: kShadowMd,
+      ),
+      child: Row(
+        children: [
+          // Search again
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _isAdding ? null : _resetSearch,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kInk2,
+                side: const BorderSide(color: kLine, width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Search again',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Add to my patients
+          Expanded(
+            flex: 2,
+            child: ElevatedButton.icon(
+              onPressed: _isAdding ? null : _addPatient,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimary,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: kPrimary.withValues(alpha: 0.45),
+                disabledForegroundColor:
+                    Colors.white.withValues(alpha: 0.7),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              icon: _isAdding
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.person_add_rounded, size: 18),
+              label: Text(
+                _isAdding ? 'Adding…' : 'Add to my patients',
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+            ),
+          ),
         ],
       ),
     );
