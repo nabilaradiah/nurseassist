@@ -57,7 +57,12 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _checkStaffCollectionAccess() async {
     try {
-      await FirebaseFirestore.instance.collection('staff').limit(1).get();
+      // A single-document get is all the rules allow before login; the
+      // document doesn't need to exist for the probe to succeed.
+      await FirebaseFirestore.instance
+          .collection('staffLookup')
+          .doc('_probe')
+          .get();
       if (!mounted) return;
       setState(() {
         _staffAccessBlocked = false;

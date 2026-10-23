@@ -209,6 +209,7 @@ async function main() {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     await db.collection('roles').doc(user.uid).set({ role: a.role, staffId: a.staffId });
+    await db.collection('staffLookup').doc(a.staffId).set({ email: a.email, uid: user.uid });
   }
 
   console.log('Uploading a sample wound image…');

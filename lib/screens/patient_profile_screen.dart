@@ -720,10 +720,12 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: kDanger),
-                  onPressed: () => _confirmDeleteAssessment(assessment),
-                ),
+                // Deleting an assessment is lecturer/admin-only (firestore.rules)
+                if (AuthService().loggedInStaff?.isLecturer == true)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: kDanger),
+                    onPressed: () => _confirmDeleteAssessment(assessment),
+                  ),
                 const Icon(Icons.chevron_right, color: Color(0xFF778698)),
               ],
             ),

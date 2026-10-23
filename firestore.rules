@@ -8,19 +8,36 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Read the caller's role from roles/{uid} (written at registration).
-    // Returns 'nurse' as a safe default if the document is missing.
+    function rolePath() {
+      return /databases/$(database)/documents/roles/$(request.auth.uid);
+    }
+
+    // A staff member is someone who verified their email AND has a roles/{uid}
+    // document (written at registration). A bare Firebase Auth account —
+    // e.g. one created straight through the Auth REST API — is not staff and
+    // gets no access to clinical data.
+    function isStaff() {
+      return isLoggedIn()
+             && request.auth.token.email_verified == true
+             && exists(rolePath());
+    }
+
+    // Only call after isStaff(), so the roles document is known to exist.
     function userRole() {
-      return get(/databases/$(database)/documents/roles/$(request.auth.uid))
-               .data.get('role', 'nurse');
+      return get(rolePath()).data.role;
     }
 
     function isSupervisorOrAdmin() {
-      return userRole() in ['supervisor', 'lecturer', 'admin'];
+      return isStaff() && userRole() in ['supervisor', 'lecturer', 'admin'];
     }
 
     function isAdmin() {
-      return userRole() == 'admin';
+      return isStaff() && userRole() == 'admin';
+    }
+
+    // True when [field] is left as it was (a missing field counts as null).
+    function unchanged(field) {
+      return request.resource.data.get(field, null) == resource.data.get(field, null);
     }
 
     // ── roles/ ────────────────────────────────────────────────────────────────
@@ -34,61 +51,84 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ── staffLookup/ ──────────────────────────────────────────────────────────
+    // staffLookup/{STAFF_ID} → { email, uid }. The only staff data readable
+    // before login, so the login and password-reset screens can turn a Staff
+    // ID into an email. Single-document reads only — the collection cannot be
+    // listed, so staff details can't be harvested in bulk.
+    // Updates are blocked, which also makes Staff IDs unique: registering an
+    // ID that already exists is an update, and fails.
+    match /staffLookup/{staffId} {
+      allow get:    if true;
+      allow list:   if false;
+      allow create: if isLoggedIn()
+                       && request.resource.data.uid == request.auth.uid
+                       && request.resource.data.email == request.auth.token.email
+                       && request.resource.data.keys().hasOnly(['email', 'uid']);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
     // ── staff/ ────────────────────────────────────────────────────────────────
-    // Readable without auth so the login flow can look up email by staffId.
-    // Only authenticated users may create (self-registration), and only with
-    // role 'nurse' — mirrors the roles/ collection's own create guard so a
-    // self-registering user can never write themselves in as supervisor/admin.
-    // Only supervisor/admin may update a staff record (e.g. to promote a role).
+    // Full staff profiles: readable by signed-in users only (the app looks up
+    // the current user's own profile by email after login).
+    // Self-registration may only create a 'nurse' record for the caller's own
+    // email. Only supervisor/admin may update a staff record.
     match /staff/{docId} {
-      allow read:   if true;
-      allow create: if isLoggedIn() && request.resource.data.role == 'nurse';
+      allow read:   if isLoggedIn();
+      allow create: if isLoggedIn()
+                       && request.resource.data.role == 'nurse'
+                       && request.resource.data.email == request.auth.token.email;
       allow update: if isSupervisorOrAdmin();
       allow delete: if isAdmin();
     }
 
     // ── patients/ ─────────────────────────────────────────────────────────────
-    // All authenticated staff may read.
-    // Only nurses, supervisors, and admins may add or edit.
+    // Verified staff may read, add and edit.
     // Deletion is locked to supervisor/lecturer/admin.
     match /patients/{patientId} {
-      allow read:           if isLoggedIn();
-      allow create, update: if isLoggedIn()
+      allow read:           if isStaff();
+      allow create, update: if isStaff()
                                && userRole() in ['nurse', 'supervisor', 'lecturer', 'admin'];
       allow delete:         if isSupervisorOrAdmin();
     }
 
     // ── woundAssessments/ ─────────────────────────────────────────────────────
-    // All authenticated staff may read and create.
+    // Verified staff may read and create; a new assessment must start
+    // unreviewed (not approved, not rejected, no supervisor feedback).
     // Update is split:
-    //   - supervisor/admin can update any field (including approvedForTraining)
-    //   - nurse can update clinical fields but CANNOT flip approvedForTraining to true
-    // Deletion is allowed for any authenticated user.
+    //   - supervisor/admin can update any field
+    //   - nurse can update clinical fields but can't touch any training
+    //     approval/rejection or supervisor field
+    // Deletion is locked to supervisor/lecturer/admin.
     match /woundAssessments/{assessmentId} {
-      allow read:   if isLoggedIn();
-      allow create: if isLoggedIn();
-      allow update: if isLoggedIn() && (
-                      isSupervisorOrAdmin()
-                      ||
-                      // Nurse update: approvedForTraining must stay false, and
-                      // supervisor-only fields must be left untouched
-                      (
-                        request.resource.data.get('approvedForTraining', false) == false
-                        && request.resource.data.get('supervisorCorrectedType', null)
-                             == resource.data.get('supervisorCorrectedType', null)
-                        && request.resource.data.get('supervisorCorrectedName', null)
-                             == resource.data.get('supervisorCorrectedName', null)
-                        && request.resource.data.get('supervisorFeedback', null)
-                             == resource.data.get('supervisorFeedback', null)
-                        && request.resource.data.get('supervisorFeedbackBy', null)
-                             == resource.data.get('supervisorFeedbackBy', null)
-                        && request.resource.data.get('supervisorFeedbackAt', null)
-                             == resource.data.get('supervisorFeedbackAt', null)
-                        && request.resource.data.get('hasSupervisorFeedback', false)
-                             == resource.data.get('hasSupervisorFeedback', false)
-                      )
+      allow read:   if isStaff();
+      allow create: if isStaff()
+                       && request.resource.data.get('approvedForTraining', false) == false
+                       && request.resource.data.get('approvedBy', null) == null
+                       && request.resource.data.get('rejectedForTraining', false) == false
+                       && request.resource.data.get('rejectedBy', null) == null
+                       && request.resource.data.get('supervisorCorrectedType', null) == null
+                       && request.resource.data.get('supervisorFeedback', null) == null
+                       && request.resource.data.get('hasSupervisorFeedback', false) == false;
+      allow update: if isSupervisorOrAdmin()
+                    || (
+                      isStaff()
+                      && unchanged('approvedForTraining')
+                      && unchanged('approvedBy')
+                      && unchanged('approvedAt')
+                      && unchanged('rejectedForTraining')
+                      && unchanged('rejectedBy')
+                      && unchanged('rejectedAt')
+                      && unchanged('supervisorCorrectedType')
+                      && unchanged('supervisorCorrectedName')
+                      && unchanged('supervisorFeedback')
+                      && unchanged('supervisorFeedbackBy')
+                      && unchanged('supervisorFeedbackAt')
+                      && unchanged('hasSupervisorFeedback')
+                      && unchanged('trainingImagePath')
                     );
-      allow delete: if isLoggedIn();
+      allow delete: if isSupervisorOrAdmin();
     }
   }
 }

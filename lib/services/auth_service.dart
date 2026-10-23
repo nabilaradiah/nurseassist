@@ -25,29 +25,34 @@ class AuthService {
   set loggedInStaffForTest(Staff? staff) => _currentLoggedInStaff = staff;
 
   // ── Sign in ────────────────────────────────────────────────────────────────
+  // ── Staff ID → email lookup ────────────────────────────────────────────────
+  /// staffLookup/{STAFF_ID} holds only { email, uid }. It is the one piece of
+  /// staff data readable before login (see firestore.rules); full profiles in
+  /// staff/ need a signed-in user.
+  DocumentReference<Map<String, dynamic>>? _lookupRef(String normId) {
+    // A '/' would turn the ID into a different document path
+    if (normId.isEmpty || normId.contains('/')) return null;
+    return _firestore.collection('staffLookup').doc(normId);
+  }
+
+  /// The email registered for [staffId], or null if there is none.
+  Future<String?> _emailForStaffId(String staffId) async {
+    final ref = _lookupRef(staffId.trim().toUpperCase());
+    if (ref == null) return null;
+    final doc = await ref.get();
+    final email = doc.data()?['email'] as String?;
+    return (email == null || email.isEmpty) ? null : email;
+  }
+
   /// Sign in with [staffId] + [password].
   /// Looks up the staff email from Firestore, then authenticates with Firebase.
   Future<Staff?> signInWithStaffId(String staffId, String password) async {
     _currentLoggedInStaff = null;
 
-    // 1. Find staff document by staffId
-    final query = await _firestore
-        .collection('staff')
-        .where('staffId', isEqualTo: staffId.trim().toUpperCase())
-        .limit(1)
-        .get();
-
-    if (query.docs.isEmpty) {
+    // 1–2. Find the email used for Firebase Auth
+    final email = await _emailForStaffId(staffId);
+    if (email == null) {
       throw Exception('Staff ID not found. Please check your Staff ID or register first.');
-    }
-
-    final staffDoc  = query.docs.first;
-    final staffData = staffDoc.data();
-
-    // 2. Get the email used for Firebase Auth
-    final email = staffData['email'] as String?;
-    if (email == null || email.isEmpty) {
-      throw Exception('No email on record for this account. Please contact your administrator.');
     }
 
     // 3. Sign in with email + password
@@ -80,9 +85,12 @@ class AuthService {
           'Email not verified. Please check your inbox (or spam/junk folder) and click the verification link before logging in.');
     }
 
-    // 5. Build and cache Staff object
-    final staff = Staff.fromJson({'id': staffDoc.id, ...staffData});
-    _currentLoggedInStaff = staff;
+    // 5. Load the full profile (readable now that we're signed in) and cache it
+    final staff = await getCurrentStaff();
+    if (staff == null) {
+      await _auth.signOut();
+      throw Exception('No staff profile found for this account. Please contact your administrator.');
+    }
     return staff;
   }
 
@@ -102,14 +110,14 @@ class AuthService {
     final normName  = fullName.trim();
     final normEmail = email.trim().toLowerCase();
 
-    // 1. Ensure Staff ID is not already taken
-    final existing = await _firestore
-        .collection('staff')
-        .where('staffId', isEqualTo: normId)
-        .limit(1)
-        .get();
-
-    if (existing.docs.isNotEmpty) {
+    // 1. Ensure Staff ID is not already taken. This is just an early check for
+    //    a friendly message — the rules also refuse to overwrite an existing
+    //    staffLookup document, so two people can never claim the same ID.
+    final lookupRef = _lookupRef(normId);
+    if (lookupRef == null) {
+      throw Exception('Staff ID must not be empty or contain "/".');
+    }
+    if ((await lookupRef.get()).exists) {
       throw Exception('Staff ID $normId is already registered.');
     }
 
@@ -133,24 +141,26 @@ class AuthService {
       }
     }
 
-    // 3. Save staff profile to Firestore
+    // 3–4. Save the Staff ID lookup, the staff profile and roles/{uid} in one
+    //      batch, so either all three exist or none do. roles/{uid} lets the
+    //      Security Rules check the role without a query (rules only support
+    //      direct document reads).
     try {
+      final uid = credential.user!.uid;
       final staffDoc = _firestore.collection('staff').doc();
-      await staffDoc.set({
-        'staffId':    normId,
-        'name':       normName,
-        'department': department.trim(),
-        'email':      normEmail,
-        'role':       'nurse',
-        'createdAt':  FieldValue.serverTimestamp(),
-      });
-
-      // 4. Write roles/{uid} so Firestore Security Rules can check the role
-      //    without needing a query (rules only support direct document reads).
-      await _firestore
-          .collection('roles')
-          .doc(credential.user!.uid)
-          .set({'role': 'nurse', 'staffId': normId});
+      final batch = _firestore.batch()
+        ..set(lookupRef, {'email': normEmail, 'uid': uid})
+        ..set(staffDoc, {
+          'staffId':    normId,
+          'name':       normName,
+          'department': department.trim(),
+          'email':      normEmail,
+          'role':       'nurse',
+          'createdAt':  FieldValue.serverTimestamp(),
+        })
+        ..set(_firestore.collection('roles').doc(uid),
+            {'role': 'nurse', 'staffId': normId});
+      await batch.commit();
 
       // 5. Send confirmation / verification email
       await credential.user?.sendEmailVerification();
@@ -189,19 +199,9 @@ class AuthService {
       emailToReset = staffIdOrEmail.trim().toLowerCase();
     } else {
       // Treat as Staff ID — look up email
-      final query = await _firestore
-          .collection('staff')
-          .where('staffId', isEqualTo: staffIdOrEmail.trim().toUpperCase())
-          .limit(1)
-          .get();
-
-      if (query.docs.isEmpty) {
+      final storedEmail = await _emailForStaffId(staffIdOrEmail);
+      if (storedEmail == null) {
         throw Exception('Staff ID not found.');
-      }
-
-      final storedEmail = query.docs.first.data()['email'] as String?;
-      if (storedEmail == null || storedEmail.isEmpty) {
-        throw Exception('No email on record for this Staff ID.');
       }
       emailToReset = storedEmail;
     }

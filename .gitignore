@@ -65,3 +65,9 @@ firestore-debug.log
 ui-debug.log
 database-debug.log
 pubsub-debug.log
+
+# Firebase Admin service-account keys — full admin access to the project.
+# Never commit; keep outside the repo where possible.
+serviceAccountKey*.json
+*-service-account*.json
+*-firebase-adminsdk-*.json
