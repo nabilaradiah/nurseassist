@@ -25,7 +25,6 @@ migrate_working_dir/
 
 # Flutter/Dart/Pub related
 **/doc/api/
-**/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins-dependencies
 .pub-cache/
@@ -55,7 +54,8 @@ app.*.map.json
 !.env.example
 # Firebase configuration
 android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
+# iOS lives in its own repository; never let its Firebase config in here
+GoogleService-Info.plist
 node_modules
 
 # Firebase Emulator Suite (local test data and logs)
@@ -71,3 +71,6 @@ pubsub-debug.log
 serviceAccountKey*.json
 *-service-account*.json
 *-firebase-adminsdk-*.json
+
+# Claude Code local settings and worktrees
+.claude/
