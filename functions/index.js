@@ -3,7 +3,9 @@ const admin     = require('firebase-admin');
 
 admin.initializeApp();
 
-const BUCKET = 'nurseassist-b8242.firebasestorage.app';
+// No bucket name: the default bucket of whichever Firebase project these
+// functions are deployed to, so a copy of the project needs no edits here.
+const bucket = () => admin.storage().bucket();
 
 /**
  * Triggered when a woundAssessment document is updated.
@@ -42,8 +44,8 @@ exports.copyApprovedWoundImage = functions.region('asia-southeast1').firestore
     const destPath = `training-data/approved/type_${woundType}/${filename}`;
 
     try {
-      const bucket = admin.storage().bucket(BUCKET);
-      await bucket.file(sourcePath).copy(bucket.file(destPath));
+      const storage = bucket();
+      await storage.file(sourcePath).copy(storage.file(destPath));
       console.log(`[${assessmentId}] Copied: ${sourcePath} → ${destPath}`);
 
       // Save the training path back to Firestore for reference
@@ -74,7 +76,7 @@ exports.deleteWoundImageOnAssessmentDelete = functions.region('asia-southeast1')
     }
 
     try {
-      await admin.storage().bucket(BUCKET).file(sourcePath).delete({ ignoreNotFound: true });
+      await bucket().file(sourcePath).delete({ ignoreNotFound: true });
       console.log(`[${assessmentId}] Deleted ${sourcePath}`);
     } catch (err) {
       console.error(`[${assessmentId}] Could not delete ${sourcePath}:`, err.message);
